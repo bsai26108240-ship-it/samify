@@ -1,0 +1,35 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        spotify: {
+          green: '#1db954',
+          'green-light': '#1ed760',
+          dark: '#121212',
+          base: '#181818',
+          card: '#181818',
+          'card-hover': '#282828',
+          subtext: '#a7a7a7',
+          highlight: '#2a2a2a',
+          divider: '#282828'
+        }
+      },
+      animation: {
+        fadeIn: 'fadeIn 0.3s ease-in-out',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        }
+      }
+    },
+  },
+  plugins: [],
+}
+
