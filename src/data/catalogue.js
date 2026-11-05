@@ -6,7 +6,7 @@ export const MUSIC_CATALOGUE = [
     artist: 'The Weeknd',
     album: 'After Hours',
     duration: 200,
-    audioUrl: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=synthwave-80s-110045.mp3',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
     coverUrl: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&auto=format&fit=crop&q=80',
     genre: 'Synth-Pop',
     plays: '4,102,945,120',
@@ -39,7 +39,7 @@ export const MUSIC_CATALOGUE = [
     artist: 'The Weeknd',
     album: 'Starboy',
     duration: 230,
-    audioUrl: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=energetic-hip-hop-8303.mp3',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
     coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&auto=format&fit=crop&q=80',
     genre: 'R&B / Electro',
     plays: '3,180,442,890',
@@ -65,7 +65,7 @@ export const MUSIC_CATALOGUE = [
     artist: 'The Weeknd',
     album: 'After Hours',
     duration: 215,
-    audioUrl: 'https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f7922d.mp3?filename=soft-notice-123891.mp3',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
     coverUrl: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=500&auto=format&fit=crop&q=80',
     genre: 'Synth-Pop',
     plays: '2,950,118,400',
@@ -90,7 +90,7 @@ export const MUSIC_CATALOGUE = [
     artist: 'Drake',
     album: 'Scorpion',
     duration: 198,
-    audioUrl: 'https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3?filename=hip-hop-rock-beats-118000.mp3',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
     coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80',
     genre: 'Hip-Hop / Rap',
     plays: '2,890,320,100',
@@ -101,12 +101,9 @@ export const MUSIC_CATALOGUE = [
       { time: 16, text: "I move on, 'cause I'm getting too close to you" },
       { time: 20, text: "I don't wanna die for you to miss me" },
       { time: 24, text: "Yes, I see the things that they wishin' on me" },
-      { time: 28, text: "Hope I got some brothers that outlive me" },
       { time: 33, text: "God's plan, God's plan" },
       { time: 38, text: "I hold back, sometimes I won't, yeah" },
       { time: 42, text: "I feel good, sometimes I don't, ayy" },
-      { time: 47, text: "I finessed down Weston Road, ayy" },
-      { time: 51, text: "Might go down a G.O.A.T., yeah" },
       { time: 56, text: "God's plan, God's plan..." }
     ]
   },
@@ -116,7 +113,7 @@ export const MUSIC_CATALOGUE = [
     artist: 'Drake',
     album: 'Views',
     duration: 267,
-    audioUrl: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3',
     coverUrl: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=500&auto=format&fit=crop&q=80',
     genre: 'R&B / Pop',
     plays: '1,980,500,430',
@@ -124,14 +121,9 @@ export const MUSIC_CATALOGUE = [
       { time: 0, text: "♪ (Smooth Beat & Organ Sample) ♪" },
       { time: 12, text: "You used to call me on my cell phone" },
       { time: 18, text: "Late night when you need my love" },
-      { time: 24, text: "Call me on my cell phone" },
-      { time: 30, text: "Late night when you need my love" },
       { time: 36, text: "And I know when that hotline bling" },
       { time: 41, text: "That can only mean one thing" },
-      { time: 47, text: "I know when that hotline bling" },
-      { time: 52, text: "That can only mean one thing" },
-      { time: 60, text: "Ever since I left the city, YOU!" },
-      { time: 65, text: "Got a reputation for yourself now..." }
+      { time: 60, text: "Ever since I left the city, YOU!" }
     ]
   },
   {
@@ -140,19 +132,15 @@ export const MUSIC_CATALOGUE = [
     artist: 'Drake',
     album: 'More Life',
     duration: 298,
-    audioUrl: 'https://cdn.pixabay.com/download/audio/2021/11/25/audio_91b32e02f9.mp3?filename=jazzy-abstract-beat-11254.mp3',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3',
     coverUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500&auto=format&fit=crop&q=80',
     genre: 'Tropical R&B',
     plays: '1,745,210,000',
     lyrics: [
       { time: 0, text: "♪ (DJ Intro & Smooth Percussion) ♪" },
-      { time: 20, text: "Hold on, hold on, fuck that..." },
       { time: 32, text: "Passionate from miles away" },
       { time: 38, text: "Passive with what I say" },
-      { time: 44, text: "Leaving great things behind" },
-      { time: 50, text: "Commentating your social media" },
-      { time: 56, text: "Listening to see if I'm relevant" },
-      { time: 62, text: "Seeing if I'm still your favorite..." }
+      { time: 44, text: "Leaving great things behind" }
     ]
   },
 
@@ -163,7 +151,7 @@ export const MUSIC_CATALOGUE = [
     artist: 'PARTYNEXTDOOR',
     album: 'PARTYNEXTDOOR',
     duration: 140,
-    audioUrl: 'https://cdn.pixabay.com/download/audio/2022/03/10/audio_c2d0f507b9.mp3?filename=ambient-piano-10781.mp3',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3',
     coverUrl: 'https://images.unsplash.com/photo-1514361537243-7f3299c82c3c?w=500&auto=format&fit=crop&q=80',
     genre: 'Mood R&B',
     plays: '890,420,110',
@@ -172,10 +160,7 @@ export const MUSIC_CATALOGUE = [
       { time: 10, text: "PND, yeah..." },
       { time: 18, text: "'Cause you gotta break from Toronto" },
       { time: 24, text: "West side,sauga city, yeah" },
-      { time: 30, text: "Niggas talkin' crazy on the low" },
-      { time: 36, text: "Tell me how you feel, girl, let me know" },
-      { time: 45, text: "Girl, you're looking like a miracle" },
-      { time: 54, text: "Break from Toronto, take you to the coast..." }
+      { time: 30, text: "Niggas talkin' crazy on the low" }
     ]
   },
   {
@@ -184,18 +169,14 @@ export const MUSIC_CATALOGUE = [
     artist: 'PARTYNEXTDOOR',
     album: 'PARTYNEXTDOOR TWO',
     duration: 311,
-    audioUrl: 'https://cdn.pixabay.com/download/audio/2021/09/06/audio_3f76904677.mp3?filename=relaxing-mountains-rivers-streams-running-water-18178.mp3',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3',
     coverUrl: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=500&auto=format&fit=crop&q=80',
     genre: 'Toronto R&B',
     plays: '780,120,500',
     lyrics: [
       { time: 0, text: "♪ (Slow Trap Synth & Vocal Echoes) ♪" },
       { time: 15, text: "I got bitches in the condo" },
-      { time: 22, text: "I got bitches in the lobby" },
-      { time: 30, text: "Niggas wanna play me like a hobby" },
-      { time: 40, text: "You're gonna make me recognize" },
-      { time: 48, text: "Babe, you gotta recognize" },
-      { time: 58, text: "(Drake Verse): I be in the city with the team..." }
+      { time: 40, text: "You're gonna make me recognize" }
     ]
   },
   {
@@ -204,17 +185,14 @@ export const MUSIC_CATALOGUE = [
     artist: 'PARTYNEXTDOOR',
     album: 'PARTYMOBILE',
     duration: 207,
-    audioUrl: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=synthwave-80s-110045.mp3',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3',
     coverUrl: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=500&auto=format&fit=crop&q=80',
     genre: 'Afro R&B',
     plays: '650,910,230',
     lyrics: [
       { time: 0, text: "♪ (Afrobeats Percussion Beat) ♪" },
       { time: 10, text: "True to you, I'm loyal" },
-      { time: 16, text: "Girl, you know I'm loyal" },
-      { time: 22, text: "All the money in the world can't buy this" },
-      { time: 30, text: "Love when you talk that talk" },
-      { time: 38, text: "Cause you got the keys to my heart..." }
+      { time: 16, text: "Girl, you know I'm loyal" }
     ]
   }
 ];

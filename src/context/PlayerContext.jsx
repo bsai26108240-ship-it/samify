@@ -15,6 +15,8 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
   const [isShuffle, setIsShuffle] = useState(false);
   const [isRepeat, setIsRepeat] = useState(false);
   const [audioError, setAudioError] = useState(false);
+  
+  // Track seeking state to prevent React state fighting HTML5 audio events
   const isSeekingRef = useRef(false);
 
   const currentTrack = (queue && queue[currentIndex]) ? queue[currentIndex] : MUSIC_CATALOGUE[0];
@@ -22,12 +24,13 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
   useEffect(() => {
     if (!audioRef.current || !currentTrack) return;
     setAudioError(false); 
+
     if (isPlaying) {
       const playPromise = audioRef.current.play();
       if (playPromise !== undefined) {
         playPromise.catch((err) => {
           if (err.name !== 'AbortError') {
-            console.error("Playback failed:", err);
+            console.error("Playback error:", err);
             setIsPlaying(false);
             setAudioError(true);
           }
@@ -75,25 +78,26 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
     setIsPlaying(true);
   }, [currentTime, queue.length]);
 
-  // Robust seek method with HTML5 audio seekable range check
+  // Robust HTML5 Seek Implementation
   const seek = useCallback((targetTime) => {
     if (!audioRef.current) return;
-    const validTarget = Math.max(0, Math.min(Number(targetTime) || 0, audioRef.current.duration || 1000));
     
+    const numericTime = Number(targetTime);
+    if (isNaN(numericTime) || !isFinite(numericTime)) return;
+
+    const maxDuration = audioRef.current.duration || currentTrack.duration || 100;
+    const validTarget = Math.max(0, Math.min(numericTime, maxDuration));
+
+    isSeekingRef.current = true;
+    setCurrentTime(validTarget);
+
     try {
-      isSeekingRef.current = true;
       audioRef.current.currentTime = validTarget;
-      setCurrentTime(validTarget);
-      
-      // Delay releasing seek lock so timeupdate doesn't overwrite it mid-frame
-      setTimeout(() => {
-        isSeekingRef.current = false;
-      }, 100);
     } catch (err) {
-      console.error("Direct HTML5 Seek Error:", err);
+      console.error("Seek error:", err);
       isSeekingRef.current = false;
     }
-  }, []);
+  }, [currentTrack]);
 
   const handleEnded = () => {
     if (isRepeat) {
@@ -121,15 +125,22 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
       <audio
         ref={audioRef} 
         src={currentTrack?.audioUrl}
+        preload="metadata"
         onTimeUpdate={() => {
           if (audioRef.current && !isSeekingRef.current) {
             setCurrentTime(audioRef.current.currentTime);
           }
         }}
         onLoadedMetadata={() => {
-          if (audioRef.current && !isNaN(audioRef.current.duration)) {
+          if (audioRef.current && !isNaN(audioRef.current.duration) && isFinite(audioRef.current.duration)) {
             setDuration(audioRef.current.duration);
           }
+        }}
+        onSeeking={() => {
+          isSeekingRef.current = true;
+        }}
+        onSeeked={() => {
+          isSeekingRef.current = false;
         }}
         onEnded={handleEnded}
         onError={handleError}
