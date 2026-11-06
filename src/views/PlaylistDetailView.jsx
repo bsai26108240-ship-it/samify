@@ -3,10 +3,9 @@ import { Shuffle, Edit3, Trash2, ListPlus, Play } from 'lucide-react';
 import { LibraryContext } from '../contexts/LibraryContext';
 import { PlayerContext } from '../contexts/PlayerContext';
 import { TrackRow } from '../components/track/TrackRow';
-import { MUSIC_CATALOGUE } from '../data/catalogue';
 
 export const PlaylistDetailView = ({ playlist, onEdit, onDelete, setCurrentView }) => {
-  const { favorites, toggleFavorite, removeTrackFromPlaylist } = useContext(LibraryContext);
+  const { favorites, toggleFavorite, removeTrackFromPlaylist, globalTracks } = useContext(LibraryContext);
   const { play, setIsShuffle } = useContext(PlayerContext);
 
   useEffect(() => {
@@ -19,7 +18,8 @@ export const PlaylistDetailView = ({ playlist, onEdit, onDelete, setCurrentView 
     return null;
   }
 
-  const playlistTracks = playlist.tracks.map(id => MUSIC_CATALOGUE.find(t => t.id === id)).filter(Boolean);
+  const tracks = globalTracks || [];
+  const playlistTracks = (playlist.tracks || []).map(id => tracks.find(t => t.id === id)).filter(Boolean);
 
   const handlePlayAll = () => {
     if (playlistTracks.length > 0) {
@@ -47,7 +47,7 @@ export const PlaylistDetailView = ({ playlist, onEdit, onDelete, setCurrentView 
           {playlist.description && (
             <p className="text-zinc-400 text-xs sm:text-sm mb-2 sm:mb-4 truncate max-w-xl">{playlist.description}</p>
           )}
-          <p className="text-emerald-400 text-xs sm:text-sm mb-4 font-semibold">{playlist.tracks.length} songs</p>
+          <p className="text-emerald-400 text-xs sm:text-sm mb-4 font-semibold">{playlistTracks.length} songs</p>
           
           <div className="flex items-center justify-center sm:justify-start space-x-3 sm:space-x-4">
             <button 

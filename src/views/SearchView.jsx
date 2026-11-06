@@ -2,23 +2,23 @@ import React, { useContext } from 'react';
 import { Search, AlertCircle, X } from 'lucide-react';
 import { LibraryContext } from '../contexts/LibraryContext';
 import { TrackRow } from '../components/track/TrackRow';
-import { MUSIC_CATALOGUE } from '../data/catalogue';
 import { EmptyPlaceholderView } from './EmptyPlaceholderView';
 
 export const SearchView = ({ searchQuery, setSearchQuery, onAddToPlaylist }) => {
-  const { favorites, toggleFavorite } = useContext(LibraryContext);
+  const { favorites, toggleFavorite, globalTracks } = useContext(LibraryContext);
+  const tracks = globalTracks || [];
   const query = (searchQuery || '').toLowerCase().trim();
 
-  const results = MUSIC_CATALOGUE.filter(track => 
+  const results = tracks.filter(track => 
     track.title.toLowerCase().includes(query) || 
     track.artist.toLowerCase().includes(query) || 
-    track.album.toLowerCase().includes(query) ||
-    track.genre.toLowerCase().includes(query)
+    (track.album && track.album.toLowerCase().includes(query)) ||
+    (track.genre && track.genre.toLowerCase().includes(query))
   );
 
   return (
     <div className="px-4 sm:px-6 md:px-10 pb-28 md:pb-10 space-y-4 sm:space-y-6 animate-fadeIn pt-2 sm:pt-4 select-none">
-      {/* Mobile Search Bar (Visible on mobile/tablets where topbar search is hidden) */}
+      {/* Mobile Search Bar */}
       <div className="sm:hidden relative w-full mb-4">
         <Search className="w-4 h-4 absolute left-4 top-3.5 text-zinc-400" />
         <input
@@ -45,7 +45,7 @@ export const SearchView = ({ searchQuery, setSearchQuery, onAddToPlaylist }) => 
       ) : results.length === 0 ? (
         <EmptyPlaceholderView 
           title="No results found" 
-          description={`We couldn't find anything matching "${searchQuery}". Try searching for Drake, The Weeknd, or PARTYNEXTDOOR.`} 
+          description={`We couldn't find anything matching "${searchQuery}". Try searching for another artist or song.`} 
           icon={AlertCircle} 
         />
       ) : (

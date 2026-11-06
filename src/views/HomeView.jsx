@@ -4,20 +4,20 @@ import { LibraryContext } from '../contexts/LibraryContext';
 import { AuthContext } from '../contexts/AuthContext';
 import { TrackCard } from '../components/track/TrackCard';
 import { TrackRow } from '../components/track/TrackRow';
-import { MUSIC_CATALOGUE } from '../data/catalogue';
 
 export const HomeView = ({ onAddToPlaylist }) => {
   const { user } = useContext(AuthContext);
-  const { favorites, toggleFavorite, listeningStats } = useContext(LibraryContext);
+  const { favorites, toggleFavorite, listeningStats, globalTracks } = useContext(LibraryContext);
   
+  const tracks = globalTracks || [];
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || 'Music Explorer';
 
   // Personalized Recommendation Logic (tailored per user)
-  const userLikedGenres = MUSIC_CATALOGUE
+  const userLikedGenres = tracks
     .filter(t => favorites.includes(t.id))
     .map(t => t.genre);
 
-  const recommendedTracks = MUSIC_CATALOGUE.filter(t => 
+  const recommendedTracks = tracks.filter(t => 
     userLikedGenres.length > 0 ? userLikedGenres.includes(t.genre) : true
   );
 
@@ -75,6 +75,7 @@ export const HomeView = ({ onAddToPlaylist }) => {
             <TrackCard 
               key={track.id} 
               track={track} 
+              queue={tracks}
               onToggleFavorite={toggleFavorite} 
               isFavorite={favorites.includes(track.id)} 
               onAddToPlaylist={onAddToPlaylist} 
@@ -92,12 +93,12 @@ export const HomeView = ({ onAddToPlaylist }) => {
           </h3>
         </div>
         <div className="space-y-1.5 sm:space-y-2">
-          {MUSIC_CATALOGUE.slice(4).map((track, idx) => (
+          {tracks.slice(4).map((track, idx) => (
             <TrackRow 
               key={track.id} 
               track={track} 
               index={idx} 
-              queue={MUSIC_CATALOGUE} 
+              queue={tracks} 
               onToggleFavorite={toggleFavorite} 
               isFavorite={favorites.includes(track.id)} 
               onAddToPlaylist={onAddToPlaylist} 

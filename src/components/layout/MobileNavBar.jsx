@@ -33,3 +33,4 @@ export const MobileNavBar = ({ currentView, setCurrentView }) => {
     </nav>
   );
 };
+

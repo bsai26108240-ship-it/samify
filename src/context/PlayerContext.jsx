@@ -19,7 +19,7 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
   // Track seeking state to prevent React state fighting HTML5 audio events
   const isSeekingRef = useRef(false);
 
-  const currentTrack = (queue && queue[currentIndex]) ? queue[currentIndex] : MUSIC_CATALOGUE[0];
+  const currentTrack = (queue && queue[currentIndex]) ? queue[currentIndex] : (queue && queue[0]) || MUSIC_CATALOGUE[0];
 
   useEffect(() => {
     if (!audioRef.current || !currentTrack) return;
@@ -76,15 +76,17 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
 
   const prev = useCallback(() => {
     if (currentTime > 3) {
-      if (audioRef.current) audioRef.current.currentTime = 0;
+      if (audioRef.current && !currentTrack.youtubeId) {
+        audioRef.current.currentTime = 0;
+      }
       setCurrentTime(0);
       return;
     }
     setCurrentIndex((prev) => (prev - 1 + queue.length) % queue.length);
     setIsPlaying(true);
-  }, [currentTime, queue.length]);
+  }, [currentTime, queue.length, currentTrack?.youtubeId]);
 
-  // Robust HTML5 Seek Implementation
+  // Robust Seek Implementation (HTML5 Audio + YouTube Audio)
   const seek = useCallback((targetTime) => {
     const numericTime = Number(targetTime);
     if (isNaN(numericTime) || !isFinite(numericTime)) return;
@@ -103,13 +105,19 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
         isSeekingRef.current = false;
       }
     } else {
+      try {
+        const ytPlayer = window.YT && window.YT.get ? window.YT.get('youtube-hidden-player') : null;
+        if (ytPlayer && typeof ytPlayer.seekTo === 'function') {
+          ytPlayer.seekTo(validTarget, true);
+        }
+      } catch {}
       isSeekingRef.current = false;
     }
   }, [currentTrack]);
 
   const handleEnded = () => {
     if (isRepeat) {
-      if (audioRef.current) {
+      if (audioRef.current && !currentTrack.youtubeId) {
         audioRef.current.currentTime = 0;
         audioRef.current.play().catch(() => setIsPlaying(false));
       }

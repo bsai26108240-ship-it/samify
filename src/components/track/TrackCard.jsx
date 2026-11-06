@@ -1,15 +1,17 @@
 import React, { useContext } from 'react';
 import { Play, Pause, Heart, ListPlus } from 'lucide-react';
 import { PlayerContext } from '../../contexts/PlayerContext';
-import { MUSIC_CATALOGUE } from '../../data/catalogue';
+import { LibraryContext } from '../../contexts/LibraryContext';
 
-export const TrackCard = ({ track, onToggleFavorite, isFavorite, onAddToPlaylist }) => {
+export const TrackCard = ({ track, queue, onToggleFavorite, isFavorite, onAddToPlaylist }) => {
   const { play, currentTrack, isPlaying } = useContext(PlayerContext);
+  const { globalTracks } = useContext(LibraryContext);
   const isThisPlaying = currentTrack?.id === track.id && isPlaying;
+  const effectiveQueue = queue || globalTracks || [track];
 
   return (
     <div 
-      onClick={() => play(track, MUSIC_CATALOGUE)}
+      onClick={() => play(track, effectiveQueue)}
       className="bg-[#121212] rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-white/5 hover:bg-[#1a1a1a] transition-all group cursor-pointer"
     >
       <div className="relative w-full aspect-square rounded-lg sm:rounded-xl overflow-hidden mb-3 sm:mb-4">

@@ -14,16 +14,16 @@ export const LibraryView = ({ setCurrentView, openCreatePlaylist, openSpotifyMod
         </div>
         <div className="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto">
           {openSpotifyModal && (
-            <button 
-              onClick={openSpotifyModal} 
+            <button
+              onClick={openSpotifyModal}
               className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 sm:px-4 py-2 rounded-full transition text-xs font-bold"
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>Import Spotify</span>
             </button>
           )}
-          <button 
-            onClick={openCreatePlaylist} 
+          <button
+            onClick={openCreatePlaylist}
             className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 bg-white/10 hover:bg-white/20 text-white px-3 sm:px-4 py-2 rounded-full transition text-xs font-bold"
           >
             <Plus className="w-4 h-4" /> <span>New Playlist</span>
@@ -40,14 +40,14 @@ export const LibraryView = ({ setCurrentView, openCreatePlaylist, openSpotifyMod
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
             {openSpotifyModal && (
-              <button 
+              <button
                 onClick={openSpotifyModal}
                 className="flex items-center space-x-2 bg-emerald-500 text-black px-5 py-2.5 rounded-full text-xs font-extrabold hover:bg-emerald-400 transition"
               >
                 <Sparkles className="w-4 h-4" /> <span>Import Spotify Playlist</span>
               </button>
             )}
-            <button 
+            <button
               onClick={openCreatePlaylist}
               className="flex items-center space-x-2 bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-full text-xs font-bold transition"
             >
@@ -58,9 +58,9 @@ export const LibraryView = ({ setCurrentView, openCreatePlaylist, openSpotifyMod
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-6">
           {playlists.map(pl => (
-            <div 
-              key={pl.id} 
-              onClick={() => setCurrentView(`playlist_${pl.id}`)} 
+            <div
+              key={pl.id}
+              onClick={() => setCurrentView(`playlist_${pl.id}`)}
               className="bg-[#121212] rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-white/5 hover:bg-[#1a1a1a] transition-all cursor-pointer group"
             >
               <div className="relative w-full aspect-square rounded-lg sm:rounded-xl overflow-hidden mb-3 sm:mb-4 shadow-lg">

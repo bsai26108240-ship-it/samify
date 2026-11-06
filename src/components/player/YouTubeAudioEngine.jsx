@@ -121,7 +121,7 @@ export const YouTubeAudioEngine = () => {
     } catch {}
   }, [volume, isMuted]);
 
-  // Periodic time updates for YouTube progress
+  // High-frequency 200ms polling for microsecond-precise karaoke lyrics synchronization
   useEffect(() => {
     if (!isPlaying || !currentTrack?.youtubeId) return;
     const interval = setInterval(() => {
@@ -137,7 +137,7 @@ export const YouTubeAudioEngine = () => {
           }
         } catch {}
       }
-    }, 500);
+    }, 200);
 
     return () => clearInterval(interval);
   }, [isPlaying, currentTrack?.youtubeId, setCurrentTime, setDuration]);

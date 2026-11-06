@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  samify-web:
+    build: .
+    ports:
+      - "8080:80"
+    environment:
+      - VITE_SPOTIFY_CLIENT_ID=${VITE_SPOTIFY_CLIENT_ID}
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+    restart: unless-stopped

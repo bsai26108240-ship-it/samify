@@ -3,11 +3,11 @@ import { Heart, Play } from 'lucide-react';
 import { LibraryContext } from '../contexts/LibraryContext';
 import { PlayerContext } from '../contexts/PlayerContext';
 import { TrackRow } from '../components/track/TrackRow';
-import { MUSIC_CATALOGUE } from '../data/catalogue';
 
 export const LikedSongsView = ({ onAddToPlaylist }) => {
-  const { favorites, toggleFavorite } = useContext(LibraryContext);
-  const likedTracks = MUSIC_CATALOGUE.filter(t => favorites.includes(t.id));
+  const { favorites, toggleFavorite, globalTracks } = useContext(LibraryContext);
+  const tracks = globalTracks || [];
+  const likedTracks = tracks.filter(t => favorites.includes(t.id));
   const { play } = useContext(PlayerContext);
 
   return (

@@ -45,9 +45,23 @@ export const useSyncedLyrics = (trackTitle, artistName) => {
     const fetchLyrics = async () => {
       setLoading(true);
       try {
+        // High-accuracy Regex cleaners to remove noise like "(Official Video)", "(feat. Drake)", etc.
+        const cleanTitle = trackTitle
+          .replace(/\(.*?\)|\[.*?\]/gi, '')
+          .split(' feat')[0]
+          .split(' ft')[0]
+          .trim();
+
+        const cleanArtist = artistName
+          .replace(/\(.*?\)|\[.*?\]/gi, '')
+          .split(' feat')[0]
+          .split(' ft')[0]
+          .split(',')[0]
+          .trim();
+
         const query = new URLSearchParams({
-          track_name: trackTitle,
-          artist_name: artistName
+          track_name: cleanTitle || trackTitle,
+          artist_name: cleanArtist || artistName
         });
 
         const res = await fetch(`https://lrclib.net/api/get?${query.toString()}`);

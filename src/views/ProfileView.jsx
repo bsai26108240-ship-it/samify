@@ -2,17 +2,17 @@ import React, { useContext } from 'react';
 import { LogOut, BarChart3, Clock, Music2, Heart } from 'lucide-react';
 import { AuthContext } from '../contexts/AuthContext';
 import { LibraryContext } from '../contexts/LibraryContext';
-import { MUSIC_CATALOGUE } from '../data/catalogue';
 import { TrackRow } from '../components/track/TrackRow';
 
 export const ProfileView = ({ onAddToPlaylist }) => {
   const { user, signOut } = useContext(AuthContext);
-  const { favorites, toggleFavorite, listeningStats } = useContext(LibraryContext);
+  const { favorites, toggleFavorite, listeningStats, globalTracks } = useContext(LibraryContext);
 
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || 'Music Fan';
   const email = user?.email || 'Guest User (Not logged in)';
 
-  const likedTracks = MUSIC_CATALOGUE.filter(t => favorites.includes(t.id));
+  const tracks = globalTracks || [];
+  const likedTracks = tracks.filter(t => favorites.includes(t.id));
 
   // Days for listening chart
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
