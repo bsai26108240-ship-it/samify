@@ -1,6 +1,6 @@
-import React, { useContext, useState } from 'react';
-import { Search, X, LogIn, User, LogOut, Sparkles, Menu } from 'lucide-react';
-import { AuthContext } from '../../contexts/AuthContext';
+import React, { useState } from 'react';
+import { Search, X, Sparkles, Menu } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 import { SamifyLogo } from '../common/SamifyLogo';
 
 export const Topbar = ({ 
@@ -9,14 +9,15 @@ export const Topbar = ({
   currentView, 
   setCurrentView, 
   openAuthModal,
+  openLoginModal,
   openSpotifyModal,
   onToggleMobileMenu
 }) => {
-  const { user, signOut } = useContext(AuthContext);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
-  const username = user?.user_metadata?.username || user?.email?.split('@')[0] || 'My Account';
+  const handleOpenLogin = openLoginModal || openAuthModal;
 
   return (
     <header className="flex items-center justify-between px-4 sm:px-6 md:px-10 py-3 sm:py-4 md:py-6 sticky top-0 z-20 bg-black/80 backdrop-blur-xl border-b border-white/5 select-none">
@@ -99,54 +100,61 @@ export const Topbar = ({
           <span className="xs:hidden">Import</span>
         </button>
 
-        {/* User Account State (Log In vs Profile Menu) */}
-        {!user ? (
-          <button 
-            onClick={openAuthModal}
-            className="flex items-center space-x-1.5 sm:space-x-2 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold px-3 py-1.5 sm:px-5 sm:py-2.5 rounded-full transition shadow-[0_0_15px_rgba(16,185,129,0.4)] text-xs sm:text-sm"
-          >
-            <LogIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> <span>Log In</span>
-          </button>
-        ) : (
-          <div className="relative">
-            <button 
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="flex items-center space-x-2 sm:space-x-3 bg-white/5 hover:bg-white/10 border border-white/10 px-2 sm:px-3.5 py-1.5 rounded-full transition"
-            >
-              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-emerald-500/30 p-0.5 border border-emerald-500 overflow-hidden">
-                <img 
-                  src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60" 
-                  alt="Avatar" 
-                  className="w-full h-full rounded-full object-cover" 
-                />
-              </div>
-              <span className="text-xs font-bold text-white max-w-[80px] sm:max-w-[100px] truncate hidden xs:inline">
-                {username}
-              </span>
-            </button>
-
-            {menuOpen && (
-              <div className="absolute right-0 mt-3 w-52 bg-[#121212] border border-white/10 rounded-2xl shadow-2xl py-2 z-50 animate-fadeIn">
-                <div className="px-4 py-2 border-b border-white/5">
-                  <p className="text-xs font-bold text-white truncate">{username}</p>
-                  <p className="text-[10px] text-zinc-500 truncate">{user.email}</p>
+        {/* Dynamic User Profile Dropdown vs Log In Button */}
+        <div className="relative">
+          {user ? (
+            <div className="relative">
+              <button 
+                onClick={() => setShowProfileMenu(!showProfileMenu)} 
+                className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white p-1 pr-3 rounded-full border border-gray-700 transition"
+              >
+                <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center font-bold text-black uppercase">
+                  {(user.name || user.email || 'U').charAt(0)}
                 </div>
-                <button 
-                  onClick={() => { setCurrentView('profile'); setMenuOpen(false); }}
-                  className="w-full flex items-center space-x-3 px-4 py-2.5 text-xs text-zinc-300 hover:text-white hover:bg-white/5 transition text-left"
-                >
-                  <User className="w-4 h-4 text-emerald-400" /> <span>Personal Portal</span>
-                </button>
-                <button 
-                  onClick={() => { signOut(); setMenuOpen(false); }}
-                  className="w-full flex items-center space-x-3 px-4 py-2.5 text-xs text-red-400 hover:bg-red-500/10 transition text-left border-t border-white/5"
-                >
-                  <LogOut className="w-4 h-4" /> <span>Sign Out</span>
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+                <span className="hidden md:block text-sm font-medium truncate max-w-[100px]">
+                  {user.name || user.email}
+                </span>
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+              </button>
+
+              {showProfileMenu && (
+                <div className="absolute right-0 mt-2 w-56 bg-[#282828] rounded-md shadow-2xl z-50 border border-gray-700 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-700">
+                    <div className="text-sm font-bold text-white truncate">{user.name || user.email}</div>
+                    <div className="text-xs text-gray-400 truncate mt-1">{user.email}</div>
+                  </div>
+                  {setCurrentView && (
+                    <button 
+                      onClick={() => {
+                        setCurrentView('profile');
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-xs text-zinc-300 hover:text-white hover:bg-gray-700 transition border-b border-gray-700"
+                    >
+                      Personal Portal
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => {
+                      logout();
+                      setShowProfileMenu(false);
+                    }} 
+                    className="w-full text-left px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition"
+                  >
+                    Log out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button 
+              onClick={handleOpenLogin} 
+              className="bg-emerald-500 text-black px-6 py-2 rounded-full font-bold hover:bg-emerald-400 transition transform hover:scale-105"
+            >
+              Log In
+            </button>
+          )}
+        </div>
       </div>
     </header>
   );
