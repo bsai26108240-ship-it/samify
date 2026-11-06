@@ -92,10 +92,10 @@ export const AuthModal = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md animate-fadeIn p-4">
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative bg-[#121212] border border-white/10 rounded-3xl p-8 w-full max-w-md shadow-2xl z-10 select-none">
-        <button onClick={onClose} className="absolute top-5 right-5 text-zinc-500 hover:text-white transition">
+      <div className="relative bg-[#121212] border border-white/10 rounded-3xl p-6 sm:p-8 w-[92vw] sm:w-full max-w-md shadow-2xl z-10 select-none">
+        <button onClick={onClose} className="absolute top-5 right-5 text-zinc-500 hover:text-white transition p-1" aria-label="Close">
           <X className="w-5 h-5" />
         </button>
 
@@ -103,7 +103,7 @@ export const AuthModal = ({ isOpen, onClose }) => {
           <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-emerald-500/30">
             {isSignUp ? <UserPlus className="w-6 h-6" /> : <LogIn className="w-6 h-6" />}
           </div>
-          <h2 className="text-2xl font-extrabold text-white">{isSignUp ? 'Create Samify Account' : 'Welcome Back'}</h2>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-white">{isSignUp ? 'Create Samify Account' : 'Welcome Back'}</h2>
           <p className="text-xs text-zinc-400 mt-1">
             {isSignUp ? 'Sign up to sync your playlists and liked songs across devices' : 'Log in to access your personal cloud music library'}
           </p>
@@ -160,7 +160,7 @@ export const AuthModal = ({ isOpen, onClose }) => {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold py-3.5 rounded-xl transition shadow-[0_0_20px_rgba(16,185,129,0.4)] disabled:opacity-50 mt-2"
+            className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold py-3.5 rounded-xl transition shadow-[0_0_20px_rgba(16,185,129,0.4)] disabled:opacity-50 mt-2 text-sm"
           >
             {submitting ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Log In')}
           </button>
@@ -178,4 +178,3 @@ export const AuthModal = ({ isOpen, onClose }) => {
     </div>
   );
 };
-

@@ -25,6 +25,12 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
     if (!audioRef.current || !currentTrack) return;
     setAudioError(false); 
 
+    // If track has a YouTube stream ID, let the YouTubeAudioEngine handle playback
+    if (currentTrack.youtubeId) {
+      audioRef.current.pause();
+      return;
+    }
+
     if (isPlaying) {
       const playPromise = audioRef.current.play();
       if (playPromise !== undefined) {
@@ -80,21 +86,23 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
 
   // Robust HTML5 Seek Implementation
   const seek = useCallback((targetTime) => {
-    if (!audioRef.current) return;
-    
     const numericTime = Number(targetTime);
     if (isNaN(numericTime) || !isFinite(numericTime)) return;
 
-    const maxDuration = audioRef.current.duration || currentTrack.duration || 100;
+    const maxDuration = (audioRef.current && audioRef.current.duration) || currentTrack.duration || 100;
     const validTarget = Math.max(0, Math.min(numericTime, maxDuration));
 
     isSeekingRef.current = true;
     setCurrentTime(validTarget);
 
-    try {
-      audioRef.current.currentTime = validTarget;
-    } catch (err) {
-      console.error("Seek error:", err);
+    if (audioRef.current && !currentTrack.youtubeId) {
+      try {
+        audioRef.current.currentTime = validTarget;
+      } catch (err) {
+        console.error("Seek error:", err);
+        isSeekingRef.current = false;
+      }
+    } else {
       isSeekingRef.current = false;
     }
   }, [currentTrack]);
@@ -111,23 +119,24 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
   };
 
   const handleError = () => {
-    if (!currentTrack) return;
+    if (!currentTrack || currentTrack.youtubeId) return;
     setAudioError(true);
     setIsPlaying(false);
-    if (setToastMessage) setToastMessage(`Failed to load: ${currentTrack.title}`);
+    if (setToastMessage) setToastMessage(`Failed to load audio: ${currentTrack.title}`);
   };
 
   return (
     <PlayerContext.Provider value={{
       currentTrack, isPlaying, currentTime, duration, volume, isMuted, isShuffle, isRepeat, audioError,
-      play, togglePlay, next, prev, seek, setVolume, setIsMuted, setIsShuffle, setIsRepeat, queue
+      play, togglePlay, next, prev, seek, setVolume, setIsMuted, setIsShuffle, setIsRepeat, queue,
+      setCurrentTime, setDuration, setAudioError
     }}>
       <audio
         ref={audioRef} 
-        src={currentTrack?.audioUrl}
+        src={currentTrack?.youtubeId ? undefined : currentTrack?.audioUrl}
         preload="metadata"
         onTimeUpdate={() => {
-          if (audioRef.current && !isSeekingRef.current) {
+          if (audioRef.current && !isSeekingRef.current && !currentTrack?.youtubeId) {
             setCurrentTime(audioRef.current.currentTime);
           }
         }}

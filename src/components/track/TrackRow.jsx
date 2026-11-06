@@ -9,14 +9,14 @@ export const TrackRow = ({ track, index, queue, onToggleFavorite, isFavorite, on
 
   return (
     <div 
-      onDoubleClick={() => play(track, queue)}
-      className={`flex items-center px-4 py-3 rounded-xl transition-all cursor-pointer border border-transparent group ${
+      onClick={() => play(track, queue)}
+      className={`flex items-center px-2.5 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-all cursor-pointer border border-transparent group ${
         isThisPlaying ? 'bg-[#1a1a1a] border-white/5' : 'hover:bg-[#121212]'
       }`}
     >
-      <div className="w-8 text-center text-sm text-zinc-600 font-medium">
+      <div className="w-6 sm:w-8 text-center text-xs sm:text-sm text-zinc-600 font-medium flex-shrink-0">
         {isThisPlaying && isPlaying ? (
-          <div className="flex items-end justify-center space-x-1 h-4">
+          <div className="flex items-end justify-center space-x-1 h-3.5 sm:h-4">
             <div className="w-1 bg-emerald-500 h-full animate-bounce" style={{ animationDelay: '0ms' }} />
             <div className="w-1 bg-emerald-500 h-2/3 animate-bounce" style={{ animationDelay: '150ms' }} />
             <div className="w-1 bg-emerald-500 h-4/5 animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -25,36 +25,35 @@ export const TrackRow = ({ track, index, queue, onToggleFavorite, isFavorite, on
           `#${index + 1}`
         )}
       </div>
-      <div className="flex items-center space-x-4 flex-1 ml-4 overflow-hidden">
-        <img src={track.coverUrl} alt="cover" className="w-10 h-10 rounded-md object-cover flex-shrink-0" />
-        <div className="flex flex-col truncate">
-          <span className={`font-semibold text-sm truncate ${isThisPlaying ? 'text-emerald-400' : 'text-white'}`}>
+      <div className="flex items-center space-x-3 sm:space-x-4 flex-1 ml-2 sm:ml-4 overflow-hidden">
+        <img src={track.coverUrl} alt="cover" className="w-9 h-9 sm:w-10 sm:h-10 rounded-md object-cover flex-shrink-0" />
+        <div className="flex flex-col truncate pr-2">
+          <span className={`font-semibold text-xs sm:text-sm truncate ${isThisPlaying ? 'text-emerald-400' : 'text-white'}`}>
             {track.title}
           </span>
-          <span className="text-xs text-zinc-500 truncate sm:hidden">{track.artist}</span>
+          <span className="text-[10px] sm:text-xs text-zinc-500 truncate sm:hidden">{track.artist}</span>
         </div>
       </div>
-      <div className="flex-1 text-sm text-zinc-500 hidden sm:block truncate">{track.artist}</div>
-      <div className="flex-1 text-sm text-zinc-500 hidden md:block truncate">{track.album}</div>
-      <div className="flex items-center space-x-6">
-        <span className="text-sm text-zinc-500 hidden lg:block">{formatTime(track.duration)}</span>
+      <div className="flex-1 text-xs sm:text-sm text-zinc-500 hidden sm:block truncate">{track.artist}</div>
+      <div className="flex-1 text-xs sm:text-sm text-zinc-500 hidden md:block truncate">{track.album}</div>
+      <div className="flex items-center space-x-3 sm:space-x-6 flex-shrink-0">
+        <span className="text-xs sm:text-sm text-zinc-500 hidden lg:block">{formatTime(track.duration)}</span>
         <Heart 
           onClick={(e) => { e.stopPropagation(); onToggleFavorite(track.id); }}
-          className={`w-4 h-4 cursor-pointer ${isFavorite ? 'text-emerald-500 fill-emerald-500' : 'text-zinc-500 hover:text-white'}`} 
+          className={`w-4 h-4 cursor-pointer transition ${isFavorite ? 'text-emerald-500 fill-emerald-500' : 'text-zinc-500 hover:text-white'}`} 
         />
         {playlistId ? (
           <Trash2 
             onClick={(e) => { e.stopPropagation(); onRemoveFromPlaylist(playlistId, track.id); }}
-            className="w-4 h-4 text-zinc-500 hover:text-red-400 cursor-pointer hidden sm:block opacity-0 group-hover:opacity-100 transition" 
+            className="w-4 h-4 text-zinc-500 hover:text-red-400 cursor-pointer sm:opacity-0 group-hover:opacity-100 transition" 
           />
         ) : (
           <ListPlus 
             onClick={(e) => { e.stopPropagation(); onAddToPlaylist(track.id); }}
-            className="w-4 h-4 text-zinc-500 hover:text-white cursor-pointer hidden sm:block opacity-0 group-hover:opacity-100 transition" 
+            className="w-4 h-4 text-zinc-500 hover:text-white cursor-pointer sm:opacity-0 group-hover:opacity-100 transition" 
           />
         )}
       </div>
     </div>
   );
 };
-
