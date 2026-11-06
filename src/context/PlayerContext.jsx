@@ -3,6 +3,7 @@ import { MUSIC_CATALOGUE } from '../data/catalogue';
 import { supabase } from '../supabaseClient';
 import { AuthContext } from '../contexts/AuthContext';
 import { setupMediaSession, updateMediaSession } from '../utils/mediaSession';
+import { getDirectAudioUrl } from '../services/audioStreamService';
 
 export const PlayerContext = createContext();
 
@@ -36,15 +37,46 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
 
   const currentTrack = (queue && queue[currentIndex]) ? queue[currentIndex] : (queue && queue[0]) || MUSIC_CATALOGUE[0];
 
-  const play = useCallback((track, newQueue = null) => {
+  const playTrack = useCallback(async (track, newQueue = null) => {
     if (newQueue) setQueue(newQueue);
     const targetQueue = newQueue || queue;
     if (track) {
       const index = targetQueue.findIndex(t => t.id === track.id);
       setCurrentIndex(index !== -1 ? index : 0);
     }
-    setIsPlaying(true);
-  }, [queue]);
+
+    const trackToPlay = track || currentTrack;
+    if (!trackToPlay) return;
+
+    try {
+      // Extract direct stream if only youtubeId or id exists
+      let streamUrl = trackToPlay.audioUrl || trackToPlay.streamUrl;
+      if (!streamUrl && (trackToPlay.youtubeId || trackToPlay.id)) {
+        const targetId = trackToPlay.youtubeId || trackToPlay.id;
+        streamUrl = await getDirectAudioUrl(targetId);
+      }
+
+      if (audioRef.current && streamUrl) {
+        if (audioRef.current.src !== streamUrl) {
+          audioRef.current.src = streamUrl;
+        }
+        audioRef.current.playsInline = true;
+        audioRef.current.setAttribute('playsinline', 'true');
+        audioRef.current.setAttribute('webkit-playsinline', 'true');
+        audioRef.current.preload = 'auto';
+
+        await audioRef.current.play();
+        setIsPlaying(true);
+      } else {
+        setIsPlaying(true);
+      }
+    } catch (err) {
+      console.error('Failed to play direct audio stream:', err);
+      setIsPlaying(false);
+    }
+  }, [queue, currentTrack]);
+
+  const play = playTrack;
 
   const pause = useCallback(() => {
     setIsPlaying(false);
@@ -68,7 +100,7 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
 
   const prev = useCallback(() => {
     if (currentTime > 3) {
-      if (audioRef.current && !currentTrack.youtubeId) {
+      if (audioRef.current) {
         audioRef.current.currentTime = 0;
       }
       setCurrentTime(0);
@@ -89,25 +121,47 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
     isSeekingRef.current = true;
     setCurrentTime(validTarget);
 
-    if (audioRef.current && !currentTrack.youtubeId) {
+    if (audioRef.current) {
       try {
         audioRef.current.currentTime = validTarget;
       } catch (err) {
         console.error("Seek error:", err);
-        isSeekingRef.current = false;
       }
-    } else {
-      try {
-        const ytPlayer = window.YT && window.YT.get ? window.YT.get('youtube-hidden-player') : null;
-        if (ytPlayer && typeof ytPlayer.seekTo === 'function') {
-          ytPlayer.seekTo(validTarget, true);
-        }
-      } catch {}
       isSeekingRef.current = false;
     }
   }, [currentTrack]);
 
-  // Handle Play/Pause and MediaSession
+  // Ensure streamUrl is loaded whenever currentTrack changes
+  useEffect(() => {
+    let isCancelled = false;
+    const syncTrackStream = async () => {
+      if (!currentTrack) return;
+      try {
+        let streamUrl = currentTrack.audioUrl || currentTrack.streamUrl;
+        if (!streamUrl && (currentTrack.youtubeId || currentTrack.id)) {
+          const targetId = currentTrack.youtubeId || currentTrack.id;
+          streamUrl = await getDirectAudioUrl(targetId);
+        }
+
+        if (audioRef.current && streamUrl && !isCancelled) {
+          if (audioRef.current.src !== streamUrl) {
+            audioRef.current.src = streamUrl;
+            if (isPlaying) {
+              audioRef.current.play().catch(console.error);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load direct track stream:", err);
+      }
+    };
+
+    syncTrackStream();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentTrack]);
   useEffect(() => {
     if (!audioRef.current || !currentTrack) return;
     setAudioError(false); 
@@ -122,12 +176,6 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
       onPrev: prev,
       onSeek: seek
     });
-
-    // If track has a YouTube stream ID, let the YouTubeAudioEngine handle playback
-    if (currentTrack.youtubeId) {
-      audioRef.current.pause();
-      return;
-    }
 
     if (isPlaying) {
       const playPromise = audioRef.current.play();
@@ -189,7 +237,7 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
 
   const handleEnded = () => {
     if (isRepeat) {
-      if (audioRef.current && !currentTrack.youtubeId) {
+      if (audioRef.current) {
         audioRef.current.currentTime = 0;
         audioRef.current.play().catch(() => setIsPlaying(false));
       }
@@ -199,7 +247,7 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
   };
 
   const handleError = () => {
-    if (!currentTrack || currentTrack.youtubeId) return;
+    if (!currentTrack) return;
     setAudioError(true);
     setIsPlaying(false);
     if (setToastMessage) setToastMessage(`Failed to load audio: ${currentTrack.title}`);
@@ -214,12 +262,12 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
     }}>
       <audio
         ref={audioRef} 
-        src={currentTrack?.youtubeId ? undefined : currentTrack?.audioUrl}
+        src={currentTrack?.audioUrl || undefined}
         preload="auto"
         playsInline
         webkit-playsinline="true"
         onTimeUpdate={() => {
-          if (audioRef.current && !isSeekingRef.current && !currentTrack?.youtubeId) {
+          if (audioRef.current && !isSeekingRef.current) {
             setCurrentTime(audioRef.current.currentTime);
             setupMediaSession({
               track: currentTrack,
