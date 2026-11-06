@@ -1,45 +1,80 @@
 import React, { useContext } from 'react';
-import { PlayCircle } from 'lucide-react';
+import { PlayCircle, Sparkles, TrendingUp, BarChart2 } from 'lucide-react';
 import { LibraryContext } from '../contexts/LibraryContext';
+import { AuthContext } from '../contexts/AuthContext';
 import { TrackCard } from '../components/track/TrackCard';
 import { TrackRow } from '../components/track/TrackRow';
 import { MUSIC_CATALOGUE } from '../data/catalogue';
 
 export const HomeView = ({ onAddToPlaylist }) => {
-  const { favorites, toggleFavorite } = useContext(LibraryContext);
+  const { user } = useContext(AuthContext);
+  const { favorites, toggleFavorite, listeningStats } = useContext(LibraryContext);
   
+  const username = user?.user_metadata?.username || user?.email?.split('@')[0] || 'Music Explorer';
+
+  // Personalized Recommendation Logic (tailored per user)
+  const userLikedGenres = MUSIC_CATALOGUE
+    .filter(t => favorites.includes(t.id))
+    .map(t => t.genre);
+
+  const recommendedTracks = MUSIC_CATALOGUE.filter(t => 
+    userLikedGenres.length > 0 ? userLikedGenres.includes(t.genre) : true
+  );
+
   return (
-    <div className="px-10 pb-10 space-y-12 animate-fadeIn">
-      <div className="relative w-full h-72 rounded-3xl overflow-hidden group cursor-pointer">
-        <img src="https://images.unsplash.com/photo-1493225457124-a1a2a5956093?w=1200&auto=format&fit=crop&q=80" alt="Hero Artist" className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/50 to-transparent" />
-        <div className="absolute inset-0 p-10 flex flex-col justify-center">
-          <div className="flex items-center space-x-2 mb-2">
-            <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center"><svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg></div>
-            <span className="text-xs font-semibold text-zinc-300 tracking-wide uppercase">Verified Artist</span>
+    <div className="px-10 pb-10 space-y-10 animate-fadeIn select-none">
+      {/* Personalized Welcome & Listening Activity Banner */}
+      <div className="relative w-full rounded-3xl overflow-hidden bg-gradient-to-r from-emerald-950 via-[#121212] to-black border border-white/10 p-8 shadow-2xl">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Personalized Portal</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black text-white">Welcome Back, {username}!</h2>
+            <p className="text-zinc-400 text-sm max-w-lg">
+              Here are your custom song recommendations, listening activity graph, and top trending streams.
+            </p>
           </div>
-          <h2 className="text-6xl font-extrabold text-white mb-3 drop-shadow-lg">Aether Code</h2>
-          <p className="text-zinc-300 text-sm flex items-center space-x-2">
-            <PlayCircle className="w-4 h-4 text-emerald-400" />
-            <span>82,736,050 monthly listeners</span>
-          </p>
+
+          {/* User Mini Listening Graph Card */}
+          <div className="bg-black/60 backdrop-blur-md p-5 rounded-2xl border border-white/10 min-w-[240px] space-y-3">
+            <div className="flex items-center justify-between text-xs font-bold text-zinc-400">
+              <span className="flex items-center space-x-1.5"><BarChart2 className="w-4 h-4 text-emerald-400" /> <span>Listening Time</span></span>
+              <span className="text-emerald-400 font-mono">{listeningStats?.minutesListened || 142}m</span>
+            </div>
+            <div className="w-full h-2 bg-[#222] rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.8)]" style={{ width: '68%' }} />
+            </div>
+            <p className="text-[11px] text-zinc-500 font-medium">Top Genre: <span className="text-zinc-300 font-bold">{listeningStats?.favoriteGenre || 'Synth-Pop'}</span></p>
+          </div>
         </div>
       </div>
 
+      {/* Personalized Recommendations for Logged-In User */}
       <div>
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold text-white">Trendy Songs</h3>
+          <h3 className="text-2xl font-extrabold text-white flex items-center space-x-2">
+            <span>Recommended For You</span>
+          </h3>
+          <span className="text-xs text-emerald-400 font-bold uppercase tracking-widest">Tailored to your taste</span>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {MUSIC_CATALOGUE.slice(0,4).map((track) => (
+          {recommendedTracks.slice(0, 4).map((track) => (
             <TrackCard key={track.id} track={track} onToggleFavorite={toggleFavorite} isFavorite={favorites.includes(track.id)} onAddToPlaylist={onAddToPlaylist} />
           ))}
         </div>
       </div>
 
+      {/* Trending & Popular Releases */}
       <div>
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold text-white">Popular Releases</h3>
+          <h3 className="text-2xl font-extrabold text-white flex items-center space-x-2">
+            <TrendingUp className="w-5 h-5 text-emerald-400" />
+            <span>Popular Hits</span>
+          </h3>
         </div>
         <div className="space-y-2">
           {MUSIC_CATALOGUE.slice(4).map((track, idx) => (
@@ -50,4 +85,3 @@ export const HomeView = ({ onAddToPlaylist }) => {
     </div>
   );
 };
-

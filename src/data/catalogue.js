@@ -12,25 +12,25 @@ export const MUSIC_CATALOGUE = [
     plays: '4,102,945,120',
     lyrics: [
       { time: 0, text: "♪ (80s Synth Intro Pulsing) ♪" },
-      { time: 14, text: "Yeah..." },
-      { time: 20, text: "I've been tryna call" },
+      { time: 10, text: "Yeah..." },
+      { time: 18, text: "I've been tryna call" },
       { time: 24, text: "I've been on my own for long enough" },
-      { time: 29, text: "Maybe you can show me how to love, maybe" },
+      { time: 30, text: "Maybe you can show me how to love, maybe" },
       { time: 38, text: "I'm going through withdrawals" },
-      { time: 43, text: "You don't even have to do too much" },
-      { time: 47, text: "You can turn me on with just a touch, baby" },
-      { time: 57, text: "I look around and Sin City's cold and empty" },
-      { time: 62, text: "No one's around to judge me" },
-      { time: 66, text: "I can't see clearly when you're gone" },
-      { time: 72, text: "I said, ooh, I'm blinded by the lights" },
-      { time: 80, text: "No, I can't sleep until I feel your touch" },
-      { time: 90, text: "I said, ooh, I'm drowning in the night" },
-      { time: 98, text: "Oh, when I'm like this, you're the one I trust" },
-      { time: 110, text: "♪ (Iconic Synth Solo) ♪" },
-      { time: 140, text: "I'm running out of time" },
-      { time: 145, text: "'Cause I can see the sun light up the sky" },
-      { time: 152, text: "So I hit the road in overdrive, baby, oh" },
-      { time: 162, text: "I said, ooh, I'm blinded by the lights..." }
+      { time: 44, text: "You don't even have to do too much" },
+      { time: 50, text: "You can turn me on with just a touch, baby" },
+      { time: 58, text: "I look around and Sin City's cold and empty" },
+      { time: 64, text: "No one's around to judge me" },
+      { time: 70, text: "I can't see clearly when you're gone" },
+      { time: 76, text: "I said, ooh, I'm blinded by the lights" },
+      { time: 84, text: "No, I can't sleep until I feel your touch" },
+      { time: 94, text: "I said, ooh, I'm drowning in the night" },
+      { time: 102, text: "Oh, when I'm like this, you're the one I trust" },
+      { time: 112, text: "♪ (Iconic Synth Solo) ♪" },
+      { time: 136, text: "I'm running out of time" },
+      { time: 142, text: "'Cause I can see the sun light up the sky" },
+      { time: 148, text: "So I hit the road in overdrive, baby, oh" },
+      { time: 158, text: "I said, ooh, I'm blinded by the lights..." }
     ]
   },
   {
@@ -45,18 +45,18 @@ export const MUSIC_CATALOGUE = [
     plays: '3,180,442,890',
     lyrics: [
       { time: 0, text: "♪ (Daft Punk Electro Piano Beat) ♪" },
-      { time: 12, text: "I'm tryna put you in the worst mood, ah" },
-      { time: 16, text: "P1 cleaner than your church shoes, ah" },
+      { time: 10, text: "I'm tryna put you in the worst mood, ah" },
+      { time: 15, text: "P1 cleaner than your church shoes, ah" },
       { time: 20, text: "Milli point two just to hurt you, ah" },
-      { time: 24, text: "All Red Lamb' just to tease you, ah" },
-      { time: 29, text: "None of these toys on lease too, ah" },
-      { time: 33, text: "Made your whole year in a week too, yah" },
-      { time: 37, text: "Main bitch out your league too, ah" },
-      { time: 41, text: "Side bitch out of your league too, ah" },
-      { time: 46, text: "Look what you've done" },
-      { time: 50, text: "I'm a motherfuckin' starboy" },
-      { time: 55, text: "Look what you've done" },
-      { time: 59, text: "I'm a motherfuckin' starboy" }
+      { time: 25, text: "All Red Lamb' just to tease you, ah" },
+      { time: 30, text: "None of these toys on lease too, ah" },
+      { time: 34, text: "Made your whole year in a week too, yah" },
+      { time: 38, text: "Main bitch out your league too, ah" },
+      { time: 43, text: "Side bitch out of your league too, ah" },
+      { time: 48, text: "Look what you've done" },
+      { time: 52, text: "I'm a motherfuckin' starboy" },
+      { time: 58, text: "Look what you've done" },
+      { time: 63, text: "I'm a motherfuckin' starboy" }
     ]
   },
   {
@@ -71,15 +71,15 @@ export const MUSIC_CATALOGUE = [
     plays: '2,950,118,400',
     lyrics: [
       { time: 0, text: "♪ (Retro Synth & Drums) ♪" },
-      { time: 10, text: "I saw you dancing in a crowded room" },
+      { time: 8, text: "I saw you dancing in a crowded room" },
       { time: 15, text: "You look so happy when I'm not with you" },
-      { time: 21, text: "But then you saw me, caught you by surprise" },
-      { time: 27, text: "A single teardrop falling from your eye" },
-      { time: 35, text: "I don't know why I run away" },
-      { time: 42, text: "I'll make you cry when I run away" },
-      { time: 50, text: "Take me back 'cause I wanna stay" },
-      { time: 57, text: "Save your tears for another day" },
-      { time: 65, text: "Save your tears for another day..." }
+      { time: 22, text: "But then you saw me, caught you by surprise" },
+      { time: 28, text: "A single teardrop falling from your eye" },
+      { time: 36, text: "I don't know why I run away" },
+      { time: 44, text: "I'll make you cry when I run away" },
+      { time: 52, text: "Take me back 'cause I wanna stay" },
+      { time: 60, text: "Save your tears for another day" },
+      { time: 68, text: "Save your tears for another day..." }
     ]
   },
 
@@ -97,14 +97,14 @@ export const MUSIC_CATALOGUE = [
     lyrics: [
       { time: 0, text: "♪ (Trap Beat Drop) ♪" },
       { time: 8, text: "Yeah, they wishin' and wishin' and wishin' and wishin'" },
-      { time: 12, text: "They wishin' on me, yeah" },
-      { time: 16, text: "I move on, 'cause I'm getting too close to you" },
-      { time: 20, text: "I don't wanna die for you to miss me" },
-      { time: 24, text: "Yes, I see the things that they wishin' on me" },
-      { time: 33, text: "God's plan, God's plan" },
-      { time: 38, text: "I hold back, sometimes I won't, yeah" },
-      { time: 42, text: "I feel good, sometimes I don't, ayy" },
-      { time: 56, text: "God's plan, God's plan..." }
+      { time: 14, text: "They wishin' on me, yeah" },
+      { time: 18, text: "I move on, 'cause I'm getting too close to you" },
+      { time: 22, text: "I don't wanna die for you to miss me" },
+      { time: 26, text: "Yes, I see the things that they wishin' on me" },
+      { time: 34, text: "God's plan, God's plan" },
+      { time: 40, text: "I hold back, sometimes I won't, yeah" },
+      { time: 46, text: "I feel good, sometimes I don't, ayy" },
+      { time: 58, text: "God's plan, God's plan..." }
     ]
   },
   {
@@ -157,9 +157,9 @@ export const MUSIC_CATALOGUE = [
     plays: '890,420,110',
     lyrics: [
       { time: 0, text: "♪ (PND Signature Atmospheric Ambient Sample) ♪" },
-      { time: 10, text: "PND, yeah..." },
-      { time: 18, text: "'Cause you gotta break from Toronto" },
-      { time: 24, text: "West side,sauga city, yeah" },
+      { time: 8, text: "PND, yeah..." },
+      { time: 16, text: "'Cause you gotta break from Toronto" },
+      { time: 24, text: "West side, sauga city, yeah" },
       { time: 30, text: "Niggas talkin' crazy on the low" }
     ]
   },

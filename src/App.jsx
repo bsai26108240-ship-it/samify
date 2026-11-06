@@ -1,8 +1,8 @@
 import React, { useState, useContext } from 'react';
 import { PlayCircle } from 'lucide-react';
-import { AuthProvider, AuthModal } from './contexts/AuthContext';
 import { LibraryContext, LibraryProvider } from './contexts/LibraryContext';
 import { PlayerProvider } from './contexts/PlayerContext';
+import { AuthContext, AuthProvider, AuthModal } from './contexts/AuthContext';
 import { NavigationSidebar } from './components/layout/NavigationSidebar';
 import { RightSidebar } from './components/layout/RightSidebar';
 import { Topbar } from './components/layout/Topbar';
@@ -16,11 +16,12 @@ import { LikedSongsView } from './views/LikedSongsView';
 import { LibraryView } from './views/LibraryView';
 import { PlaylistDetailView } from './views/PlaylistDetailView';
 import { LyricsView } from './views/LyricsView';
+import { ProfileView } from './views/ProfileView';
 
-function MainApp() {
+const MainApp = () => {
   const [currentView, setCurrentView] = useState('home');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   
   const { toastMessage, playlists, createPlaylist, updatePlaylist, deletePlaylist, addTrackToPlaylist } = useContext(LibraryContext);
 
@@ -44,21 +45,21 @@ function MainApp() {
       case 'search': return <SearchView searchQuery={searchQuery} onAddToPlaylist={openAddToPlaylist} />;
       case 'library': return <LibraryView setCurrentView={setCurrentView} openCreatePlaylist={openCreatePlaylist} />;
       case 'lyrics': return <LyricsView />;
+      case 'profile': return <ProfileView onAddToPlaylist={openAddToPlaylist} />;
       default: return <HomeView onAddToPlaylist={openAddToPlaylist} />;
     }
   };
 
   return (
     <div className="flex h-screen bg-black text-white font-sans overflow-hidden select-none relative">
-      {/* Cool Dark Printed Cyber/Abstract Wallpaper Background */}
+      {/* Background Cyber Wallpaper */}
       <div 
         className="absolute inset-0 bg-cover bg-center opacity-15 pointer-events-none z-0 filter blur-xl scale-105"
         style={{ backgroundImage: `url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1920&q=80')` }}
       />
       
-      {/* Ambient Neon Glow Orbs */}
-      <div className="absolute top-[-10%] left-[25%] w-[700px] h-[700px] bg-emerald-600/10 rounded-full blur-[160px] pointer-events-none z-0 animate-pulse" style={{ animationDuration: '6s' }} />
-      <div className="absolute bottom-[-10%] right-[20%] w-[600px] h-[600px] bg-cyan-600/10 rounded-full blur-[160px] pointer-events-none z-0" />
+      {/* Ambient Glow Orbs */}
+      <div className="absolute top-[-10%] left-[25%] w-[700px] h-[700px] bg-emerald-600/10 rounded-full blur-[160px] pointer-events-none z-0 animate-pulse" />
 
       {toastMessage && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-emerald-500 text-black px-6 py-3 rounded-full shadow-[0_0_25px_rgba(16,185,129,0.6)] font-extrabold text-sm flex items-center space-x-2 animate-fadeIn">
@@ -74,7 +75,7 @@ function MainApp() {
           setSearchQuery={setSearchQuery} 
           currentView={currentView} 
           setCurrentView={setCurrentView} 
-          onOpenAuth={() => setIsAuthOpen(true)}
+          openAuthModal={() => setAuthModalOpen(true)}
         />
         {renderCurrentView()}
       </main>
@@ -82,9 +83,10 @@ function MainApp() {
       <RightSidebar />
       <BottomPlayer currentView={currentView} setCurrentView={setCurrentView} />
 
-      {/* Modals */}
-      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+      {/* Auth Modal */}
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
 
+      {/* Playlist Modals */}
       {modalState.isOpen && modalState.type === 'form' && (
         <PlaylistFormModal 
           initialData={modalState.data} 

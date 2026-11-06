@@ -17,6 +17,20 @@ export const LibraryProvider = ({ children }) => {
     catch { return []; }
   });
 
+  // User-specific listening history & listening statistics
+  const [listeningStats, setListeningStats] = useState(() => {
+    try { 
+      return JSON.parse(localStorage.getItem('samify_stats')) || {
+        minutesListened: 142,
+        totalPlays: 38,
+        weeklyData: [20, 35, 45, 15, 60, 80, 50], // Minutes per day (Mon-Sun)
+        favoriteGenre: 'Synth-Pop'
+      };
+    } catch { 
+      return { minutesListened: 142, totalPlays: 38, weeklyData: [20, 35, 45, 15, 60, 80, 50], favoriteGenre: 'Synth-Pop' };
+    }
+  });
+
   const [toastMessage, setToastMessage] = useState(null);
 
   const triggerToast = useCallback((msg) => {
@@ -24,12 +38,12 @@ export const LibraryProvider = ({ children }) => {
     setTimeout(() => setToastMessage(null), 3000);
   }, []);
 
-  // Fetch user data from Supabase when logged in
+  // Fetch user-specific data from Supabase when user logs in
   useEffect(() => {
     if (!user || !supabase) return;
 
     const fetchUserData = async () => {
-      // 1. Fetch Liked Songs
+      // 1. Fetch User Liked Songs
       const { data: likedData } = await supabase
         .from('liked_songs')
         .select('track_id')
@@ -39,7 +53,7 @@ export const LibraryProvider = ({ children }) => {
         setFavorites(likedData.map(item => item.track_id));
       }
 
-      // 2. Fetch User Playlists & Track lists
+      // 2. Fetch User Playlists
       const { data: playlistData } = await supabase
         .from('playlists')
         .select(`
@@ -68,7 +82,21 @@ export const LibraryProvider = ({ children }) => {
     fetchUserData();
   }, [user]);
 
-  // Fallback local storage persistence for guest mode
+  // Record playback to user's personalized listening graph
+  const recordTrackPlay = useCallback((track) => {
+    setListeningStats(prev => {
+      const updated = {
+        ...prev,
+        totalPlays: prev.totalPlays + 1,
+        minutesListened: prev.minutesListened + Math.round(track.duration / 60),
+        favoriteGenre: track.genre || prev.favoriteGenre
+      };
+      try { localStorage.setItem(`samify_stats_${user?.id || 'guest'}`, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  }, [user]);
+
+  // Local Storage fallback for guest mode
   useEffect(() => {
     if (!user) {
       try { localStorage.setItem('samify_favorites', JSON.stringify(favorites)); } catch {}
@@ -81,7 +109,6 @@ export const LibraryProvider = ({ children }) => {
     }
   }, [playlists, user]);
 
-  // Cloud & Local Liked Songs sync
   const toggleFavorite = async (trackId) => {
     const isFav = favorites.includes(trackId);
     const newFavs = isFav ? favorites.filter(id => id !== trackId) : [...favorites, trackId];
@@ -103,7 +130,6 @@ export const LibraryProvider = ({ children }) => {
     }
   };
 
-  // Cloud & Local Playlist creation
   const createPlaylist = async (title, description) => {
     const coverUrl = `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random()*100000)}?w=500&auto=format&fit=crop&q=80`;
 
@@ -133,7 +159,6 @@ export const LibraryProvider = ({ children }) => {
       }
     }
 
-    // Local fallback if unauthenticated
     const newPlaylist = {
       id: Date.now().toString(),
       title,
@@ -207,7 +232,9 @@ export const LibraryProvider = ({ children }) => {
   return (
     <LibraryContext.Provider value={{
       favorites, toggleFavorite, toastMessage, triggerToast,
-      playlists, createPlaylist, updatePlaylist, deletePlaylist, addTrackToPlaylist, removeTrackFromPlaylist
+      playlists, createPlaylist, updatePlaylist, deletePlaylist, 
+      addTrackToPlaylist, removeTrackFromPlaylist,
+      listeningStats, recordTrackPlay
     }}>
       {children}
     </LibraryContext.Provider>
