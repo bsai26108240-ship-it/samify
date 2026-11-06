@@ -2,7 +2,7 @@ import React, { createContext, useState, useEffect, useRef, useCallback, useCont
 import { MUSIC_CATALOGUE } from '../data/catalogue';
 import { supabase } from '../supabaseClient';
 import { AuthContext } from '../contexts/AuthContext';
-import { updateMediaSession } from '../utils/mediaSession';
+import { setupMediaSession, updateMediaSession } from '../utils/mediaSession';
 
 export const PlayerContext = createContext();
 
@@ -22,6 +22,17 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
   
   // Track seeking state to prevent React state fighting HTML5 audio events
   const isSeekingRef = useRef(false);
+
+  // Critical attributes for Mobile Background Playback
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.playsInline = true;
+      audio.setAttribute('playsinline', 'true');
+      audio.setAttribute('webkit-playsinline', 'true');
+      audio.preload = 'auto';
+    }
+  }, []);
 
   const currentTrack = (queue && queue[currentIndex]) ? queue[currentIndex] : (queue && queue[0]) || MUSIC_CATALOGUE[0];
 
@@ -102,10 +113,13 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
     setAudioError(false); 
 
     // Mobile background playback / lock-screen notification hook
-    updateMediaSession({
+    setupMediaSession({
       track: currentTrack,
+      playerRef: audioRef,
       onPlay: () => setIsPlaying(true),
       onPause: pause,
+      onNext: next,
+      onPrev: prev,
       onSeek: seek
     });
 
@@ -195,19 +209,25 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
     <PlayerContext.Provider value={{
       currentTrack, isPlaying, currentTime, duration, volume, isMuted, isShuffle, isRepeat, audioError,
       play, pause, togglePlay, next, prev, seek, setVolume, setIsMuted, setIsShuffle, setIsRepeat, queue,
-      setCurrentTime, setDuration, setAudioError
+      setCurrentTime, setDuration, setAudioError,
+      playTrack: play
     }}>
       <audio
         ref={audioRef} 
         src={currentTrack?.youtubeId ? undefined : currentTrack?.audioUrl}
-        preload="metadata"
+        preload="auto"
+        playsInline
+        webkit-playsinline="true"
         onTimeUpdate={() => {
           if (audioRef.current && !isSeekingRef.current && !currentTrack?.youtubeId) {
             setCurrentTime(audioRef.current.currentTime);
-            updateMediaSession({
+            setupMediaSession({
               track: currentTrack,
+              playerRef: audioRef,
               onPlay: () => setIsPlaying(true),
               onPause: pause,
+              onNext: next,
+              onPrev: prev,
               onSeek: seek
             });
           }
