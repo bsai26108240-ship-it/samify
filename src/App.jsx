@@ -28,7 +28,7 @@ const MainApp = () => {
   const [spotifyModalOpen, setSpotifyModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
-  const { toastMessage, playlists, createPlaylist, updatePlaylist, deletePlaylist, addTrackToPlaylist } = useContext(LibraryContext);
+  const { toastMessage, playlists, createPlaylist, updatePlaylist, deletePlaylist, addTrackToPlaylist, setGlobalTracks } = useContext(LibraryContext);
 
   const [modalState, setModalState] = useState({ isOpen: false, type: null, data: null });
   const closeModal = () => setModalState({ isOpen: false, type: null, data: null });
@@ -136,10 +136,22 @@ const MainApp = () => {
       {/* Background YouTube Audio Stream Engine */}
       <YouTubeAudioEngine />
 
-      {/* Spotify Playlist Importer Modal */}
+      {/* YouTube / Spotify Playlist Importer Modal */}
       <SpotifyImporterModal 
         isOpen={spotifyModalOpen} 
         onClose={() => setSpotifyModalOpen(false)} 
+        onImportSuccess={(tracks, name) => {
+          if (setGlobalTracks) {
+            setGlobalTracks(prev => {
+              const existingIds = new Set(prev.map(t => t.id));
+              const filtered = tracks.filter(t => !existingIds.has(t.id));
+              return [...prev, ...filtered];
+            });
+          }
+          if (createPlaylist) {
+            createPlaylist(name, 'Imported Playlist', tracks.map(t => t.id));
+          }
+        }}
       />
 
       {/* Auth Modal */}

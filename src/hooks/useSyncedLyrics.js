@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { fetchLyrics } from '../utils/lyricsService';
 
 /**
  * Parses LRC lyrics string format into timestamped objects
@@ -35,49 +36,26 @@ export const useSyncedLyrics = (trackTitle, artistName) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!trackTitle || !artistName) {
+    if (!trackTitle) {
       setLyrics([]);
       return;
     }
 
     let isMounted = true;
 
-    const fetchLyrics = async () => {
+    const loadLyrics = async () => {
       setLoading(true);
       try {
-        // High-accuracy Regex cleaners to remove noise like "(Official Video)", "(feat. Drake)", etc.
-        const cleanTitle = trackTitle
-          .replace(/\(.*?\)|\[.*?\]/gi, '')
-          .split(' feat')[0]
-          .split(' ft')[0]
-          .trim();
+        const data = await fetchLyrics(trackTitle, artistName);
+        if (!isMounted) return;
 
-        const cleanArtist = artistName
-          .replace(/\(.*?\)|\[.*?\]/gi, '')
-          .split(' feat')[0]
-          .split(' ft')[0]
-          .split(',')[0]
-          .trim();
-
-        const query = new URLSearchParams({
-          track_name: cleanTitle || trackTitle,
-          artist_name: cleanArtist || artistName
-        });
-
-        const res = await fetch(`https://lrclib.net/api/get?${query.toString()}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (!isMounted) return;
-          if (data.syncedLyrics) {
-            setLyrics(parseLrc(data.syncedLyrics));
-          } else if (data.plainLyrics) {
-            const plainLines = data.plainLyrics.split('\n').map((text, idx) => ({ time: idx * 4, text }));
-            setLyrics(plainLines);
-          } else {
-            setLyrics([]);
-          }
+        if (data.syncedLyrics) {
+          setLyrics(parseLrc(data.syncedLyrics));
+        } else if (data.plainLyrics) {
+          const plainLines = data.plainLyrics.split('\n').map((text, idx) => ({ time: idx * 4, text }));
+          setLyrics(plainLines);
         } else {
-          if (isMounted) setLyrics([]);
+          setLyrics([]);
         }
       } catch (err) {
         console.error("LrcLib Lyrics fetch failed:", err);
@@ -87,7 +65,7 @@ export const useSyncedLyrics = (trackTitle, artistName) => {
       }
     };
 
-    fetchLyrics();
+    loadLyrics();
 
     return () => {
       isMounted = false;
