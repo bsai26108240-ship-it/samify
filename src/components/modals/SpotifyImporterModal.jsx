@@ -1,5 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { LibraryContext } from '../../contexts/LibraryContext';
+import { importFullPlaylist } from '../../services/playlistImporter';
 
 export const SpotifyImporterModal = ({ isOpen, onClose, onImportSuccess }) => {
   const [inputUrl, setInputUrl] = useState('');
@@ -16,33 +17,26 @@ export const SpotifyImporterModal = ({ isOpen, onClose, onImportSuccess }) => {
     setErrorMsg('');
 
     try {
-      const playlistIdMatch = inputUrl.match(/[&?]list=([^&]+)/);
-      const playlistId = playlistIdMatch ? playlistIdMatch[1] : null;
-
-      if (!playlistId) {
+      if (!inputUrl.includes('list=')) {
         throw new Error("Please enter a valid YouTube Playlist URL (must contain '?list=...').");
       }
 
-      // Call native serverless function to bypass CORS
-      const res = await fetch(`/api/parse-playlist?playlistId=${playlistId}`);
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to import playlist.");
-      }
+      // Client-side multi-page importer — supports up to 1,000 tracks
+      const importedTracks = await importFullPlaylist(inputUrl);
+      const playlistName = new URL(inputUrl).searchParams.get('list') || 'Imported Playlist';
 
       if (onImportSuccess) {
-        onImportSuccess(data.tracks, data.title);
+        onImportSuccess(importedTracks, playlistName);
       } else {
         if (setGlobalTracks) {
           setGlobalTracks(prev => {
             const existingIds = new Set(prev.map(t => t.id));
-            const filtered = (data.tracks || []).filter(t => !existingIds.has(t.id));
+            const filtered = importedTracks.filter(t => !existingIds.has(t.id));
             return [...prev, ...filtered];
           });
         }
         if (createPlaylist) {
-          await createPlaylist(data.title || 'Imported Playlist', 'Imported from YouTube', (data.tracks || []).map(t => t.id));
+          await createPlaylist(playlistName, 'Imported from YouTube', importedTracks.map(t => t.id));
         }
       }
 
@@ -90,7 +84,7 @@ export const SpotifyImporterModal = ({ isOpen, onClose, onImportSuccess }) => {
             disabled={isImporting}
             className="w-full bg-emerald-500 text-black font-semibold py-3 rounded-xl hover:bg-emerald-400 transition disabled:opacity-50"
           >
-            {isImporting ? 'Processing Tracks...' : 'Import to Samify'}
+            {isImporting ? 'Fetching All Tracks...' : 'Import to Samify'}
           </button>
         </form>
       </div>
