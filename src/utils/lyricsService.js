@@ -40,3 +40,4 @@ export const fetchLyrics = async (title, artist) => {
     return { syncedLyrics: null, plainLyrics: null };
   }
 };
+
