@@ -1,92 +1,126 @@
-// Client-side playlist parser (Bypasses serverless timeouts)
-export const importFullPlaylist = async (playlistUrl) => {
-  const match = playlistUrl.match(/[&?]list=([^&]+)/);
-  const playlistId = match ? match[1] : null;
+/**
+ * Samify High-Performance Client-Side Playlist Importer
+ * Resolves CORS blocks, handles parameter order, and bypasses Vercel 10s timeouts.
+ */
 
-  if (!playlistId) {
-    throw new Error('Invalid YouTube playlist URL');
+export const importFullPlaylist = async (playlistUrl) => {
+  if (!playlistUrl || typeof playlistUrl !== 'string') {
+    throw new Error('Please enter a valid YouTube playlist URL.');
   }
 
-  // 1. Try Invidious / Piped instances directly from client browser
-  const instances = [
-    'https://invidious.drgns.space',
-    'https://pipedapi.kavin.rocks',
-    'https://api.piped.video'
-  ];
+  // 1. Extract Playlist ID robustly from any YouTube URL format
+  let playlistId = null;
+  try {
+    const parsedUrl = new URL(playlistUrl.trim());
+    playlistId = parsedUrl.searchParams.get('list');
+  } catch (e) {
+    // String regex fallback if URL constructor fails
+    const match = playlistUrl.match(/[?&]list=([^&]+)/);
+    playlistId = match ? match[1] : null;
+  }
+
+  if (!playlistId) {
+    throw new Error('Invalid playlist URL format. Make sure the link includes "?list=" or "&list=".');
+  }
 
   let tracks = [];
 
-  for (const instance of instances) {
-    try {
-      let page = 1;
-      let nextpage = null;
-      let fetchedTracks = [];
+  // 2. Multi-instance proxies to bypass browser CORS completely
+  const corsProxies = [
+    (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`
+  ];
 
-      do {
-        const url = nextpage
-          ? `${instance}/api/v1/playlists/${playlistId}?nextpage=${encodeURIComponent(nextpage)}`
-          : `${instance}/api/v1/playlists/${playlistId}`;
+  const apiInstances = [
+    'https://pipedapi.kavin.rocks',
+    'https://api.piped.video',
+    'https://invidious.drgns.space'
+  ];
 
-        const res = await fetch(url);
-        if (!res.ok) break;
+  // Try fetching paginated tracks through CORS proxies
+  for (const proxyFn of corsProxies) {
+    if (tracks.length > 0) break;
 
-        const data = await res.json();
-        const items = data.relatedStreams || data.videos || [];
+    for (const instance of apiInstances) {
+      try {
+        let nextpage = null;
+        let page = 1;
+        let fetchedTracks = [];
 
-        const pageTracks = items.map((item) => ({
-          id: item.videoId || (item.url ? item.url.replace('/watch?v=', '') : Math.random().toString()),
-          youtubeId: item.videoId || (item.url ? item.url.replace('/watch?v=', '') : ''),
-          title: item.title,
-          artist: item.uploaderName || item.author || 'Unknown Artist',
-          duration: item.duration ? item.duration * 1000 : 0,
-          coverUrl: item.thumbnailUrl || item.videoThumbnails?.[0]?.url || `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`
-        }));
+        do {
+          const targetUrl = nextpage
+            ? `${instance}/api/v1/playlists/${playlistId}?nextpage=${encodeURIComponent(nextpage)}`
+            : `${instance}/api/v1/playlists/${playlistId}`;
 
-        fetchedTracks = [...fetchedTracks, ...pageTracks];
-        nextpage = data.nextpage || null;
-        page++;
+          const res = await fetch(proxyFn(targetUrl));
+          if (!res.ok) break;
 
-      } while (nextpage && page <= 20); // Supports up to 1,000 tracks!
+          const data = await res.json();
+          const items = data.relatedStreams || data.videos || [];
 
-      if (fetchedTracks.length > 0) {
-        tracks = fetchedTracks;
-        break; // Successfully fetched!
+          if (items.length === 0) break;
+
+          const pageTracks = items.map((item) => ({
+            id: item.videoId || (item.url ? item.url.replace('/watch?v=', '') : Math.random().toString(36).substring(2)),
+            youtubeId: item.videoId || (item.url ? item.url.replace('/watch?v=', '') : ''),
+            title: item.title || 'Unknown Title',
+            artist: item.uploaderName || item.author || 'Unknown Artist',
+            duration: item.duration ? item.duration * 1000 : 0,
+            coverUrl: item.thumbnailUrl || item.videoThumbnails?.[0]?.url || `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`
+          }));
+
+          fetchedTracks = [...fetchedTracks, ...pageTracks];
+          nextpage = data.nextpage || null;
+          page++;
+
+        } while (nextpage && page <= 25); // Supports up to 1,000+ tracks safely
+
+        if (fetchedTracks.length > 0) {
+          tracks = fetchedTracks;
+          break;
+        }
+      } catch (err) {
+        console.warn(`Attempt failed for instance ${instance}, trying next...`);
       }
-    } catch (err) {
-      console.warn(`Instance ${instance} failed, trying next...`, err);
     }
   }
 
-  // 2. Fallback: Parse via YouTube RSS Feed if API instances fail
+  // 3. Final Fallback: YouTube RSS Feed via CORS Proxy
   if (tracks.length === 0) {
-    try {
-      const rssUrl = `https://corsproxy.io/?${encodeURIComponent(`https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistId}`)}`;
-      const rssRes = await fetch(rssUrl);
-      if (rssRes.ok) {
-        const xmlText = await rssRes.text();
-        const parser = new DOMParser();
-        const xml = parser.parseFromString(xmlText, 'text/xml');
-        const entries = Array.from(xml.querySelectorAll('entry'));
+    for (const proxyFn of corsProxies) {
+      try {
+        const rssTarget = `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistId}`;
+        const res = await fetch(proxyFn(rssTarget));
 
-        tracks = entries.map((entry) => {
-          const videoId = entry.querySelector('videoId')?.textContent || '';
-          return {
-            id: videoId,
-            youtubeId: videoId,
-            title: entry.querySelector('title')?.textContent || 'Unknown Title',
-            artist: entry.querySelector('author > name')?.textContent || 'Unknown Artist',
-            duration: 0,
-            coverUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
-          };
-        });
+        if (res.ok) {
+          const xmlText = await res.text();
+          const parser = new DOMParser();
+          const xml = parser.parseFromString(xmlText, 'text/xml');
+          const entries = Array.from(xml.querySelectorAll('entry'));
+
+          if (entries.length > 0) {
+            tracks = entries.map((entry) => {
+              const videoId = entry.querySelector('videoId')?.textContent || '';
+              return {
+                id: videoId,
+                youtubeId: videoId,
+                title: entry.querySelector('title')?.textContent || 'Unknown Title',
+                artist: entry.querySelector('author > name')?.textContent || 'Unknown Artist',
+                duration: 0,
+                coverUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+              };
+            });
+            break;
+          }
+        }
+      } catch (rssErr) {
+        console.warn('RSS Fallback attempt failed...');
       }
-    } catch (rssErr) {
-      console.error('CORS RSS fallback failed:', rssErr);
     }
   }
 
   if (tracks.length === 0) {
-    throw new Error('Could not fetch tracks. Please check if the playlist is public.');
+    throw new Error('Unable to fetch playlist tracks. Please verify that the playlist is set to Public on YouTube.');
   }
 
   return tracks;
