@@ -1,200 +1,128 @@
-import React, { useState, useContext } from 'react';
-import { X, DownloadCloud, Sparkles, CheckCircle2, Music } from 'lucide-react';
+import React, { useState, useEffect, useContext } from 'react';
+import { X, DownloadCloud, Sparkles } from 'lucide-react';
 import { LibraryContext } from '../../contexts/LibraryContext';
 
 export const SpotifyImporterModal = ({ isOpen, onClose }) => {
   const [playlistUrl, setPlaylistUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(null);
-  const [success, setSuccess] = useState(false);
-  const { createPlaylist, globalTracks, setGlobalTracks } = useContext(LibraryContext);
+  const [token, setToken] = useState(localStorage.getItem('spotify_token'));
+  
+  const { createPlaylist, setGlobalTracks, addTrackToPlaylist } = useContext(LibraryContext);
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes('access_token')) {
+      const extractedToken = new URLSearchParams(hash.replace('#', '?')).get('access_token');
+      if (extractedToken) {
+        localStorage.setItem('spotify_token', extractedToken);
+        setToken(extractedToken);
+        window.location.hash = ''; 
+      }
+    }
+  }, []);
 
   if (!isOpen) return null;
 
+  const handleConnect = () => {
+    const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
+    const redirectUri = window.location.origin + '/';
+    const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${redirectUri}&scope=playlist-read-private%20playlist-read-collaborative`;
+    window.location.href = authUrl;
+  };
+
   const handleImport = async (e) => {
     e.preventDefault();
-    if (!playlistUrl.trim()) return;
+    if (!playlistUrl || !token) return;
 
     setLoading(true);
-    setSuccess(false);
-    setProgress("Extracting Spotify Playlist ID...");
+    setProgress("Extracting Official Spotify ID...");
 
     try {
       const match = playlistUrl.match(/playlist\/([a-zA-Z0-9]+)/);
-      if (!match) {
-        alert("Please enter a valid Spotify Playlist URL (e.g. https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M)");
-        setLoading(false);
-        setProgress(null);
-        return;
-      }
-
-      const playlistId = match[1];
-      setProgress("Fetching metadata from Spotify API...");
-
-      let playlistTitle = `Spotify Playlist (${playlistId.slice(0, 6)})`;
-      let playlistDesc = `Imported from Spotify`;
-      let playlistCover = `https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&auto=format&fit=crop&q=80`;
-      let importedTracks = [];
-
-      try {
-        const response = await fetch(`https://api.spotifydown.com/metadata/${playlistId}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data) {
-            if (data.title) playlistTitle = data.title;
-            if (data.artists) playlistDesc = `Imported from Spotify • Curated by ${data.artists}`;
-            if (data.cover) playlistCover = data.cover;
-
-            // Extract track list if available
-            const rawTrackList = data.trackList || data.tracks || [];
-            if (Array.isArray(rawTrackList) && rawTrackList.length > 0) {
-              importedTracks = rawTrackList.map((t, idx) => {
-                const trackId = `sp_${playlistId}_${t.id || idx}`;
-                const title = t.title || t.name || `Track ${idx + 1}`;
-                const artist = t.artists || t.artist || 'Spotify Artist';
-                const album = t.album || playlistTitle;
-                const coverUrl = t.cover || playlistCover;
-                const duration = Math.round((t.duration_ms || t.duration || 180000) / 1000);
-                
-                return {
-                  id: trackId,
-                  title,
-                  artist,
-                  album,
-                  duration,
-                  coverUrl,
-                  genre: 'Spotify Import',
-                  plays: '1,240,000',
-                  // Youtube search query string or direct stream ID
-                  youtubeId: t.youtubeId || null,
-                  lyrics: []
-                };
-              });
-            }
-          }
-        }
-      } catch (err) {
-        console.warn("Spotify metadata API fetch notice:", err);
-      }
-
-      // If open proxy didn't return full tracks array, synthesize sample tracks based on playlist metadata
-      if (importedTracks.length === 0) {
-        const sampleNames = [
-          { title: "Top Hit 01", artist: playlistTitle },
-          { title: "Trending Vibes", artist: "Spotify Discover" },
-          { title: "Popular Anthem", artist: "Hot Hits" },
-          { title: "Late Night Chill", artist: "Samify Selection" },
-          { title: "Club Rotation", artist: "Global Hits" }
-        ];
-
-        importedTracks = sampleNames.map((s, idx) => ({
-          id: `sp_${playlistId}_${idx}`,
-          title: s.title,
-          artist: s.artist,
-          album: playlistTitle,
-          duration: 180 + idx * 15,
-          coverUrl: playlistCover,
-          genre: 'Spotify Import',
-          plays: '850,000',
-          lyrics: []
-        }));
-      }
-
-      setProgress(`Registering ${importedTracks.length} tracks into Samify catalogue...`);
-
-      // Add new tracks to globalTracks dynamic state
-      const newTrackIds = importedTracks.map(t => t.id);
-      setGlobalTracks(prev => {
-        const existingIds = new Set(prev.map(t => t.id));
-        const filteredNew = importedTracks.filter(t => !existingIds.has(t.id));
-        return [...prev, ...filteredNew];
+      if (!match) throw new Error("Invalid URL");
+      
+      setProgress("Fetching metadata from Official Spotify API...");
+      const res = await fetch(`https://api.spotify.com/v1/playlists/${match[1]}`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
-      // Create new playlist with the imported tracks
-      setProgress(`Creating cloud playlist "${playlistTitle}"...`);
-      await createPlaylist(playlistTitle, playlistDesc, newTrackIds);
+      if (res.status === 401) {
+        localStorage.removeItem('spotify_token');
+        setToken(null);
+        throw new Error("Token expired, please reconnect.");
+      }
 
-      setProgress(`Import Complete! ${importedTracks.length} songs added to your library.`);
-      setSuccess(true);
+      const data = await res.json();
+      
+      const newTracks = data.tracks.items.filter(i => i.track).map(item => ({
+        id: item.track.id,
+        title: item.track.name,
+        artist: item.track.artists.map(a => a.name).join(', '),
+        album: item.track.album.name,
+        coverUrl: item.track.album.images[0]?.url || '',
+        duration: Math.floor(item.track.duration_ms / 1000),
+        youtubeId: ''
+      }));
 
-      setTimeout(() => {
-        onClose();
-        setLoading(false);
-        setProgress(null);
-        setSuccess(false);
-        setPlaylistUrl('');
-      }, 1400);
+      setProgress("Registering tracks to Global Library...");
+      if (setGlobalTracks) {
+        setGlobalTracks(prev => {
+          const existingIds = new Set(prev.map(t => t.id));
+          const filtered = newTracks.filter(t => !existingIds.has(t.id));
+          return [...prev, ...filtered];
+        });
+      }
+
+      setProgress(`Creating cloud playlist "${data.name}"...`);
+      const trackIds = newTracks.map(t => t.id);
+      await createPlaylist(data.name, data.description || 'Imported via Official API', trackIds);
+      
+      setProgress("Done! All real tracks imported.");
+      setTimeout(() => { onClose(); setLoading(false); }, 1500);
 
     } catch (err) {
-      console.error("Spotify Import Error:", err);
-      alert("Failed to import playlist. Make sure the Spotify playlist is set to Public!");
+      console.error(err);
+      alert(err.message || "Failed to import. Make sure the link is correct.");
       setLoading(false);
-      setProgress(null);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md animate-fadeIn p-4">
-      <div className="relative bg-[#121212] border border-white/10 rounded-3xl p-6 sm:p-8 w-full max-w-lg shadow-2xl">
-        <button 
-          onClick={onClose} 
-          className="absolute top-5 right-5 text-zinc-500 hover:text-white transition p-1"
-          aria-label="Close"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md animate-fadeIn">
+      <div className="relative bg-[#121212] border border-white/10 rounded-3xl p-8 w-full max-w-lg shadow-2xl">
+        <button onClick={onClose} className="absolute top-5 right-5 text-zinc-500 hover:text-white transition"><X className="w-5 h-5" /></button>
 
         <div className="text-center mb-6">
-          <div className="w-14 h-14 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+          <div className="w-14 h-14 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
             <Sparkles className="w-7 h-7" />
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-white">1-Click Spotify Importer</h2>
-          <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto">
-            Paste any public Spotify playlist URL below to automatically import tracks and metadata into your Samify account!
-          </p>
+          <h2 className="text-2xl font-black text-white">Official Spotify Importer</h2>
+          <p className="text-xs text-zinc-400 mt-1">Connect your account for flawless metadata import.</p>
         </div>
 
-        <form onSubmit={handleImport} className="space-y-4">
-          <div>
-            <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">
-              Spotify Playlist URL
-            </label>
-            <input
-              type="url"
-              required
-              placeholder="https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"
-              value={playlistUrl}
-              onChange={(e) => setPlaylistUrl(e.target.value)}
-              className="w-full bg-[#1a1a1a] text-sm text-white px-4 py-3.5 rounded-xl border border-white/10 focus:outline-none focus:border-emerald-500 transition"
-            />
-          </div>
-
-          {progress && (
-            <div className={`p-3 rounded-xl text-xs font-bold flex items-center space-x-2 ${success ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'}`}>
-              {success ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              ) : (
-                <DownloadCloud className="w-4 h-4 animate-bounce" />
-              )}
-              <span>{progress}</span>
+        {!token ? (
+           <button onClick={handleConnect} className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold py-3.5 rounded-xl transition shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+             Connect to Spotify
+           </button>
+        ) : (
+          <form onSubmit={handleImport} className="space-y-4">
+            <div>
+              <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Spotify Playlist URL</label>
+              <input type="url" required placeholder="https://open.spotify.com/playlist/..." value={playlistUrl} onChange={(e) => setPlaylistUrl(e.target.value)} className="w-full bg-[#1a1a1a] text-sm text-white px-4 py-3.5 rounded-xl border border-white/10 focus:outline-none focus:border-emerald-500 transition" />
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold py-3.5 rounded-xl transition shadow-[0_0_20px_rgba(16,185,129,0.4)] disabled:opacity-50 text-sm flex items-center justify-center space-x-2"
-          >
-            {loading ? (
-              <span>Importing Tracks...</span>
-            ) : (
-              <>
-                <Music className="w-4 h-4" />
-                <span>Import Playlist Now</span>
-              </>
+            {progress && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs font-bold text-emerald-400 flex items-center space-x-2">
+                <DownloadCloud className="w-4 h-4 animate-bounce" /><span>{progress}</span>
+              </div>
             )}
-          </button>
-        </form>
+
+            <button type="submit" disabled={loading} className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold py-3.5 rounded-xl transition shadow-[0_0_20px_rgba(16,185,129,0.4)] disabled:opacity-50">
+              {loading ? 'Importing...' : 'Import Playlist'}
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );
