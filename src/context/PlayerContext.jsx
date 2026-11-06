@@ -1,9 +1,12 @@
-import React, { createContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useRef, useCallback, useContext } from 'react';
 import { MUSIC_CATALOGUE } from '../data/catalogue';
+import { supabase } from '../supabaseClient';
+import { AuthContext } from '../contexts/AuthContext';
 
 export const PlayerContext = createContext();
 
 export const PlayerProvider = ({ children, setToastMessage }) => {
+  const { user } = useContext(AuthContext) || {};
   const audioRef = useRef(null);
   const [queue, setQueue] = useState(MUSIC_CATALOGUE);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -50,6 +53,44 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = isMuted ? 0 : volume;
   }, [volume, isMuted]);
+
+  // Broadcast current listening presence to Supabase user_profiles
+  useEffect(() => {
+    if (!user || !currentTrack || !supabase) return;
+
+    const broadcastPresence = async () => {
+      try {
+        const username = user.name || (user.email ? user.email.split('@')[0] : 'Music Fan');
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        let userId = user.id;
+        if (!uuidRegex.test(userId)) {
+          let hex = '';
+          for (let i = 0; i < String(userId).length; i++) {
+            hex += String(userId).charCodeAt(i).toString(16);
+          }
+          hex = hex.padEnd(32, '0').slice(0, 32);
+          userId = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+        }
+
+        await supabase.from('user_profiles').upsert({
+          id: userId,
+          username,
+          avatar_url: user.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
+          current_track: { 
+            title: currentTrack.title, 
+            artist: currentTrack.artist, 
+            coverUrl: currentTrack.coverUrl,
+            isPlaying
+          },
+          updated_at: new Date().toISOString()
+        });
+      } catch (err) {
+        // Silently catch if table not yet migrated
+      }
+    };
+
+    broadcastPresence();
+  }, [user, currentTrack?.id, isPlaying]);
 
   const play = useCallback((track, newQueue = null) => {
     if (newQueue) setQueue(newQueue);
