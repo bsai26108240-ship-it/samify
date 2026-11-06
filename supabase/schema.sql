@@ -1,74 +1,60 @@
 -- ==========================================================
--- SAMIFY SUPABASE SCHEMA: Cross-Device Realtime Sync
+-- SAMIFY MASTER SUPABASE MIGRATION SCRIPT
+-- Run this in your Supabase SQL Editor:
+-- https://supabase.com/dashboard/project/brigerbdlrbqbbpymjsf/sql
 -- ==========================================================
 
--- 1. User Likes (Tracks liked by user, with metadata for instant cross-device hydration)
-create table if not exists public.user_likes (
-  user_id uuid references auth.users(id) on delete cascade not null,
-  track_id text not null,
-  track_data jsonb default '{}'::jsonb,
-  created_at timestamp with time zone default now() not null,
-  primary key (user_id, track_id)
+-- 1. Create Liked Songs Table
+CREATE TABLE IF NOT EXISTS public.user_likes (
+    user_id UUID NOT NULL,
+    track_id TEXT NOT NULL,
+    track_data JSONB NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (user_id, track_id)
 );
 
--- Enable RLS for user_likes
-alter table public.user_likes enable row level security;
-
--- Policies for user_likes: users only read, insert, delete their own records
-drop policy if exists "Users can read own liked songs" on public.user_likes;
-create policy "Users can read own liked songs"
-  on public.user_likes for select
-  using (auth.uid() = user_id);
-
-drop policy if exists "Users can insert own liked songs" on public.user_likes;
-create policy "Users can insert own liked songs"
-  on public.user_likes for insert
-  with check (auth.uid() = user_id);
-
-drop policy if exists "Users can update own liked songs" on public.user_likes;
-create policy "Users can update own liked songs"
-  on public.user_likes for update
-  using (auth.uid() = user_id);
-
-drop policy if exists "Users can delete own liked songs" on public.user_likes;
-create policy "Users can delete own liked songs"
-  on public.user_likes for delete
-  using (auth.uid() = user_id);
-
-
--- 2. User Playlists (Custom playlists stored with tracks jsonb array)
-create table if not exists public.user_playlists (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade not null,
-  name text not null,
-  tracks jsonb default '[]'::jsonb not null,
-  updated_at timestamp with time zone default now() not null
+-- 2. Create Playlists Table
+CREATE TABLE IF NOT EXISTS public.user_playlists (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL,
+    name TEXT NOT NULL,
+    tracks JSONB DEFAULT '[]'::jsonb,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Enable RLS for user_playlists
-alter table public.user_playlists enable row level security;
+-- 3. Create Profiles Table (For Friend Activity & Sync)
+CREATE TABLE IF NOT EXISTS public.user_profiles (
+    id UUID PRIMARY KEY,
+    username TEXT,
+    avatar_url TEXT,
+    current_track JSONB,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
--- Policies for user_playlists: users only read, insert, update, delete their own records
-drop policy if exists "Users can read own playlists" on public.user_playlists;
-create policy "Users can read own playlists"
-  on public.user_playlists for select
-  using (auth.uid() = user_id);
+-- 4. Create Follows & Chat Tables
+CREATE TABLE IF NOT EXISTS public.user_follows (
+    follower_id UUID,
+    following_id UUID,
+    PRIMARY KEY (follower_id, following_id)
+);
 
-drop policy if exists "Users can insert own playlists" on public.user_playlists;
-create policy "Users can insert own playlists"
-  on public.user_playlists for insert
-  with check (auth.uid() = user_id);
+CREATE TABLE IF NOT EXISTS public.friend_messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sender_id UUID NOT NULL,
+    receiver_id UUID NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
-drop policy if exists "Users can update own playlists" on public.user_playlists;
-create policy "Users can update own playlists"
-  on public.user_playlists for update
-  using (auth.uid() = user_id);
+-- 5. Enable Realtime Replication for tables
+ALTER PUBLICATION supabase_realtime ADD TABLE public.user_likes;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.user_playlists;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.user_profiles;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.friend_messages;
 
-drop policy if exists "Users can delete own playlists" on public.user_playlists;
-create policy "Users can delete own playlists"
-  on public.user_playlists for delete
-  using (auth.uid() = user_id);
-
--- 3. Enable Realtime Replication for these tables
-alter publication supabase_realtime add table public.user_likes;
-alter publication supabase_realtime add table public.user_playlists;
+-- 6. Disable RLS locks for instant access
+ALTER TABLE public.user_likes DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_playlists DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_profiles DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_follows DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.friend_messages DISABLE ROW LEVEL SECURITY;

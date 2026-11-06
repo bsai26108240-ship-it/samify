@@ -79,3 +79,4 @@ create policy "Users can send messages"
 alter publication supabase_realtime add table public.user_profiles;
 alter publication supabase_realtime add table public.user_follows;
 alter publication supabase_realtime add table public.friend_messages;
+

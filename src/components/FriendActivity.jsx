@@ -418,3 +418,4 @@ export const FriendActivity = ({ className = '' }) => {
 };
 
 export default FriendActivity;
+
