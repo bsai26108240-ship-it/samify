@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import { PlayCircle } from 'lucide-react';
 import { LibraryContext, LibraryProvider } from './contexts/LibraryContext';
 import { PlayerProvider } from './contexts/PlayerContext';
@@ -28,7 +28,31 @@ const MainApp = () => {
   const [spotifyModalOpen, setSpotifyModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
-  const { toastMessage, playlists, createPlaylist, updatePlaylist, deletePlaylist, addTrackToPlaylist, setGlobalTracks } = useContext(LibraryContext);
+  const { user } = useContext(AuthContext) || {};
+  const { toastMessage, triggerToast, playlists, createPlaylist, updatePlaylist, deletePlaylist, addTrackToPlaylist, setGlobalTracks } = useContext(LibraryContext);
+
+  const [guestMode, setGuestMode] = useState(() => {
+    try {
+      return sessionStorage.getItem('samify_guest_session') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Auth Gate: Check if user session is unauthenticated on launch
+  const showAuthGate = !user && !guestMode;
+
+  // Welcome back toast when user is present
+  const welcomedRef = useRef(false);
+  useEffect(() => {
+    if (user && !welcomedRef.current) {
+      welcomedRef.current = true;
+      const displayName = user.name || (user.email ? user.email.split('@')[0] : 'Music Fan');
+      if (triggerToast) {
+        triggerToast(`Welcome back, ${displayName}!`);
+      }
+    }
+  }, [user, triggerToast]);
 
   const [modalState, setModalState] = useState({ isOpen: false, type: null, data: null });
   const closeModal = () => setModalState({ isOpen: false, type: null, data: null });
@@ -154,8 +178,16 @@ const MainApp = () => {
         }}
       />
 
-      {/* Auth Modal */}
-      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+      {/* Auth Gate / Login Modal */}
+      <AuthModal 
+        isOpen={authModalOpen || showAuthGate} 
+        onClose={() => setAuthModalOpen(false)} 
+        onContinueAsGuest={() => {
+          setGuestMode(true);
+          try { sessionStorage.setItem('samify_guest_session', 'true'); } catch {}
+          setAuthModalOpen(false);
+        }}
+      />
 
       {/* Playlist Modals */}
       {modalState.isOpen && modalState.type === 'form' && (
