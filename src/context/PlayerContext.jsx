@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useRef, useCallback, useCont
 import { MUSIC_CATALOGUE } from '../data/catalogue';
 import { supabase } from '../supabaseClient';
 import { AuthContext } from '../contexts/AuthContext';
+import { updateMediaSession } from '../utils/mediaSession';
 
 export const PlayerContext = createContext();
 
@@ -24,84 +25,23 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
 
   const currentTrack = (queue && queue[currentIndex]) ? queue[currentIndex] : (queue && queue[0]) || MUSIC_CATALOGUE[0];
 
-  useEffect(() => {
-    if (!audioRef.current || !currentTrack) return;
-    setAudioError(false); 
-
-    // If track has a YouTube stream ID, let the YouTubeAudioEngine handle playback
-    if (currentTrack.youtubeId) {
-      audioRef.current.pause();
-      return;
-    }
-
-    if (isPlaying) {
-      const playPromise = audioRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          if (err.name !== 'AbortError') {
-            console.error("Playback error:", err);
-            setIsPlaying(false);
-            setAudioError(true);
-          }
-        });
-      }
-    } else {
-      audioRef.current.pause();
-    }
-  }, [isPlaying, currentTrack]);
-
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = isMuted ? 0 : volume;
-  }, [volume, isMuted]);
-
-  // Broadcast current listening presence to Supabase user_profiles
-  useEffect(() => {
-    if (!user || !currentTrack || !supabase) return;
-
-    const broadcastPresence = async () => {
-      try {
-        const username = user.name || (user.email ? user.email.split('@')[0] : 'Music Fan');
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        let userId = user.id;
-        if (!uuidRegex.test(userId)) {
-          let hex = '';
-          for (let i = 0; i < String(userId).length; i++) {
-            hex += String(userId).charCodeAt(i).toString(16);
-          }
-          hex = hex.padEnd(32, '0').slice(0, 32);
-          userId = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
-        }
-
-        await supabase.from('user_profiles').upsert({
-          id: userId,
-          username,
-          avatar_url: user.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
-          current_track: { 
-            title: currentTrack.title, 
-            artist: currentTrack.artist, 
-            coverUrl: currentTrack.coverUrl,
-            isPlaying
-          },
-          updated_at: new Date().toISOString()
-        });
-      } catch (err) {
-        // Silently catch if table not yet migrated
-      }
-    };
-
-    broadcastPresence();
-  }, [user, currentTrack?.id, isPlaying]);
-
   const play = useCallback((track, newQueue = null) => {
     if (newQueue) setQueue(newQueue);
     const targetQueue = newQueue || queue;
-    const index = targetQueue.findIndex(t => t.id === track.id);
-    
-    setCurrentIndex(index !== -1 ? index : 0);
+    if (track) {
+      const index = targetQueue.findIndex(t => t.id === track.id);
+      setCurrentIndex(index !== -1 ? index : 0);
+    }
     setIsPlaying(true);
   }, [queue]);
 
-  const togglePlay = () => setIsPlaying(!isPlaying);
+  const pause = useCallback(() => {
+    setIsPlaying(false);
+  }, []);
+
+  const togglePlay = useCallback(() => {
+    setIsPlaying(prev => !prev);
+  }, []);
 
   const next = useCallback(() => {
     setCurrentIndex((prev) => {
@@ -156,6 +96,83 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
     }
   }, [currentTrack]);
 
+  // Handle Play/Pause and MediaSession
+  useEffect(() => {
+    if (!audioRef.current || !currentTrack) return;
+    setAudioError(false); 
+
+    // Mobile background playback / lock-screen notification hook
+    updateMediaSession({
+      track: currentTrack,
+      onPlay: () => setIsPlaying(true),
+      onPause: pause,
+      onSeek: seek
+    });
+
+    // If track has a YouTube stream ID, let the YouTubeAudioEngine handle playback
+    if (currentTrack.youtubeId) {
+      audioRef.current.pause();
+      return;
+    }
+
+    if (isPlaying) {
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          if (err.name !== 'AbortError') {
+            console.error("Playback error:", err);
+            setIsPlaying(false);
+            setAudioError(true);
+          }
+        });
+      }
+    } else {
+      audioRef.current.pause();
+    }
+  }, [isPlaying, currentTrack, pause, seek]);
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = isMuted ? 0 : volume;
+  }, [volume, isMuted]);
+
+  // Broadcast current listening presence to Supabase user_profiles
+  useEffect(() => {
+    if (!user || !currentTrack || !supabase) return;
+
+    const broadcastPresence = async () => {
+      try {
+        const username = user.name || (user.email ? user.email.split('@')[0] : 'Music Fan');
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        let userId = user.id;
+        if (!uuidRegex.test(userId)) {
+          let hex = '';
+          for (let i = 0; i < String(userId).length; i++) {
+            hex += String(userId).charCodeAt(i).toString(16);
+          }
+          hex = hex.padEnd(32, '0').slice(0, 32);
+          userId = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+        }
+
+        await supabase.from('user_profiles').upsert({
+          id: userId,
+          username,
+          avatar_url: user.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
+          current_track: { 
+            title: currentTrack.title, 
+            artist: currentTrack.artist, 
+            coverUrl: currentTrack.coverUrl,
+            isPlaying
+          },
+          updated_at: new Date().toISOString()
+        });
+      } catch (err) {
+        // Silently catch if table not yet migrated
+      }
+    };
+
+    broadcastPresence();
+  }, [user, currentTrack?.id, isPlaying]);
+
   const handleEnded = () => {
     if (isRepeat) {
       if (audioRef.current && !currentTrack.youtubeId) {
@@ -177,7 +194,7 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
   return (
     <PlayerContext.Provider value={{
       currentTrack, isPlaying, currentTime, duration, volume, isMuted, isShuffle, isRepeat, audioError,
-      play, togglePlay, next, prev, seek, setVolume, setIsMuted, setIsShuffle, setIsRepeat, queue,
+      play, pause, togglePlay, next, prev, seek, setVolume, setIsMuted, setIsShuffle, setIsRepeat, queue,
       setCurrentTime, setDuration, setAudioError
     }}>
       <audio
@@ -187,6 +204,12 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
         onTimeUpdate={() => {
           if (audioRef.current && !isSeekingRef.current && !currentTrack?.youtubeId) {
             setCurrentTime(audioRef.current.currentTime);
+            updateMediaSession({
+              track: currentTrack,
+              onPlay: () => setIsPlaying(true),
+              onPause: pause,
+              onSeek: seek
+            });
           }
         }}
         onLoadedMetadata={() => {
