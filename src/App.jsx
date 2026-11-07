@@ -13,6 +13,8 @@ import { PlaylistFormModal } from './components/modals/PlaylistFormModal';
 import { AddToPlaylistModal } from './components/modals/AddToPlaylistModal';
 import { ConfirmDeleteModal } from './components/modals/ConfirmDeleteModal';
 import { SpotifyImporterModal } from './components/modals/SpotifyImporterModal';
+import { FullScreenPlayerModal } from './components/player/FullScreenPlayerModal';
+import { usePlayer } from './contexts/PlayerContext';
 import { HomeView } from './views/HomeView';
 import { SearchView } from './views/SearchView';
 import { LikedSongsView } from './views/LikedSongsView';
@@ -30,6 +32,7 @@ const MainApp = () => {
   
   const { user } = useContext(AuthContext) || {};
   const { toastMessage, triggerToast, playlists, createPlaylist, updatePlaylist, deletePlaylist, addTrackToPlaylist, setGlobalTracks } = useContext(LibraryContext);
+  const { isExpanded, setIsExpanded } = usePlayer();
 
   const [guestMode, setGuestMode] = useState(() => {
     try {
@@ -153,6 +156,13 @@ const MainApp = () => {
 
       {/* Bottom Music Player Bar */}
       <BottomPlayer currentView={currentView} setCurrentView={setCurrentView} />
+
+      {/* Full-Screen Music Player Modal */}
+      <FullScreenPlayerModal 
+        isOpen={isExpanded} 
+        onClose={() => setIsExpanded(false)} 
+        onOpenAddToPlaylist={(track) => openAddToPlaylist(track?.id)}
+      />
 
       {/* Mobile Bottom Navigation Bar (Home, Search, Library, Liked, Profile) */}
       <MobileNavBar currentView={currentView} setCurrentView={setCurrentView} />

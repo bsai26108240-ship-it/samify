@@ -19,8 +19,10 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
   const [audioError, setAudioError] = useState(false);
   const [isDownloaded, setIsDownloaded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  
+  // Full-Screen Player Modal Expansion State
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  // Configure native HTML5 Audio element for mobile background playback
   useEffect(() => {
     const audio = audioRef.current;
     if (audio) {
@@ -31,7 +33,6 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
     }
   }, []);
 
-  // Update volume & mute states on audioRef
   useEffect(() => {
     const audio = audioRef.current;
     if (audio) {
@@ -39,7 +40,6 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
     }
   }, [volume, isMuted]);
 
-  // Audio Event Listeners Setup
   useEffect(() => {
     const audio = audioRef.current;
 
@@ -85,7 +85,6 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
     };
   }, [isDragging, isRepeat, currentIndex, queue, currentTrack, setToastMessage]);
 
-  // Configure Web MediaSession API for Background & Lock Screen Playback Controls
   const setupMediaSession = useCallback((track) => {
     if ('mediaSession' in navigator && track) {
       try {
@@ -95,45 +94,28 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
           album: track.album || 'Samify',
           artwork: [
             { src: track.coverUrl || '/default-cover.png', sizes: '96x96', type: 'image/png' },
-            { src: track.coverUrl || '/default-cover.png', sizes: '128x128', type: 'image/png' },
-            { src: track.coverUrl || '/default-cover.png', sizes: '192x192', type: 'image/png' },
-            { src: track.coverUrl || '/default-cover.png', sizes: '256x256', type: 'image/png' },
-            { src: track.coverUrl || '/default-cover.png', sizes: '384x384', type: 'image/png' },
             { src: track.coverUrl || '/default-cover.png', sizes: '512x512', type: 'image/png' },
           ],
         });
 
         navigator.mediaSession.setActionHandler('play', () => {
-          const audio = audioRef.current;
-          audio.play().then(() => setIsPlaying(true)).catch(console.error);
+          audioRef.current.play().then(() => setIsPlaying(true)).catch(console.error);
         });
-
         navigator.mediaSession.setActionHandler('pause', () => {
-          const audio = audioRef.current;
-          audio.pause();
+          audioRef.current.pause();
           setIsPlaying(false);
         });
-
-        navigator.mediaSession.setActionHandler('previoustrack', () => {
-          playPrevious();
-        });
-
-        navigator.mediaSession.setActionHandler('nexttrack', () => {
-          playNext();
-        });
-
+        navigator.mediaSession.setActionHandler('previoustrack', playPrevious);
+        navigator.mediaSession.setActionHandler('nexttrack', playNext);
         navigator.mediaSession.setActionHandler('seekto', (details) => {
-          if (details.seekTime != null) {
-            seek(details.seekTime);
-          }
+          if (details.seekTime != null) seek(details.seekTime);
         });
       } catch (err) {
-        console.warn('Error setting up MediaSession:', err);
+        console.warn('MediaSession setup failed:', err);
       }
     }
   }, []);
 
-  // Handle Play Track & Check Offline IndexedDB Storage
   const playTrack = async (track, newQueue = null) => {
     if (!track) return;
     setAudioError(false);
@@ -149,7 +131,6 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
 
     setCurrentTrack(track);
 
-    // Prioritize offline IndexedDB Blob URL over online network URL
     let playbackUrl = null;
     try {
       const localBlobUrl = await getOfflineTrackUrl(track.id);
@@ -167,10 +148,6 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
       audio.src = playbackUrl;
     }
     audio.volume = isMuted ? 0 : volume;
-    audio.playsInline = true;
-    audio.setAttribute('playsinline', 'true');
-    audio.setAttribute('webkit-playsinline', 'true');
-    audio.preload = 'auto';
 
     try {
       await audio.play();
@@ -178,7 +155,7 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
       setupMediaSession(track);
     } catch (err) {
       if (err.name !== 'AbortError') {
-        console.error('Audio playback error:', err);
+        console.error('Playback error:', err);
         setIsPlaying(false);
         setAudioError(true);
       }
@@ -266,13 +243,11 @@ export const PlayerProvider = ({ children, setToastMessage }) => {
         isDownloaded,
         isDragging,
         setIsDragging,
+        isExpanded,
+        setIsExpanded,
         playTrack,
         play: playTrack,
         togglePlay,
-        pause: () => {
-          audioRef.current.pause();
-          setIsPlaying(false);
-        },
         playNext,
         next: playNext,
         playPrevious,
