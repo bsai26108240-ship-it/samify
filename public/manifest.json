@@ -1,12 +1,20 @@
 {
+  "id": "/?source=pwa",
   "name": "Samify Music Streaming",
   "short_name": "Samify",
   "description": "High-performance, un-gated music streaming PWA",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#121212",
   "theme_color": "#121212",
   "orientation": "portrait",
+  "categories": [
+    "music",
+    "entertainment",
+    "audio"
+  ],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icon-192.png",
@@ -19,6 +27,22 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Samify Desktop Experience"
+    },
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Samify Mobile Experience"
     }
   ]
 }
