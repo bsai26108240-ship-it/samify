@@ -1,0 +1,6 @@
+{
+  "appId": "com.samify.app",
+  "appName": "Samify",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
