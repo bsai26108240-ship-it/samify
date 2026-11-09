@@ -3,19 +3,19 @@ import { PlayCircle } from 'lucide-react';
 import { LibraryContext, LibraryProvider } from './contexts/LibraryContext';
 import { PlayerProvider } from './contexts/PlayerContext';
 import { AuthContext, AuthProvider, AuthModal } from './contexts/AuthContext';
+import { SearchProvider, useSearch } from './contexts/SearchContext';
 import { NavigationSidebar } from './components/layout/NavigationSidebar';
 import { RightSidebar } from './components/layout/RightSidebar';
 import { Topbar } from './components/layout/Topbar';
 import { BottomPlayer } from './components/layout/BottomPlayer';
 import { MobileNavBar } from './components/layout/MobileNavBar';
-import { YouTubeAudioEngine } from './components/player/YouTubeAudioEngine';
 import { PlaylistFormModal } from './components/modals/PlaylistFormModal';
 import { AddToPlaylistModal } from './components/modals/AddToPlaylistModal';
 import { ConfirmDeleteModal } from './components/modals/ConfirmDeleteModal';
-import { SpotifyImporterModal } from './components/modals/SpotifyImporterModal';
 import { FullScreenPlayerModal } from './components/player/FullScreenPlayerModal';
 import { usePlayer } from './contexts/PlayerContext';
 import { HomeView } from './views/HomeView';
+import { DiscoverView } from './views/DiscoverView';
 import { SearchView } from './views/SearchView';
 import { LikedSongsView } from './views/LikedSongsView';
 import { LibraryView } from './views/LibraryView';
@@ -25,13 +25,12 @@ import { ProfileView } from './views/ProfileView';
 
 const MainApp = () => {
   const [currentView, setCurrentView] = useState('home');
-  const [searchQuery, setSearchQuery] = useState('');
+  const { searchQuery, setSearchQuery } = useSearch();
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [spotifyModalOpen, setSpotifyModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const { user } = useContext(AuthContext) || {};
-  const { toastMessage, triggerToast, playlists, createPlaylist, updatePlaylist, deletePlaylist, addTrackToPlaylist, setGlobalTracks } = useContext(LibraryContext);
+  const { toastMessage, triggerToast, playlists, createPlaylist, updatePlaylist, deletePlaylist, addTrackToPlaylist } = useContext(LibraryContext);
   const { isExpanded, setIsExpanded } = usePlayer();
 
   const [guestMode, setGuestMode] = useState(() => {
@@ -81,6 +80,8 @@ const MainApp = () => {
     switch (currentView) {
       case 'home': 
         return <HomeView onAddToPlaylist={openAddToPlaylist} />;
+      case 'discover':
+        return <DiscoverView onAddToPlaylist={openAddToPlaylist} />;
       case 'liked': 
         return <LikedSongsView onAddToPlaylist={openAddToPlaylist} />;
       case 'search': 
@@ -96,7 +97,6 @@ const MainApp = () => {
           <LibraryView 
             setCurrentView={setCurrentView} 
             openCreatePlaylist={openCreatePlaylist} 
-            openSpotifyModal={() => setSpotifyModalOpen(true)}
           />
         );
       case 'lyrics': 
@@ -134,18 +134,16 @@ const MainApp = () => {
         openCreatePlaylist={openCreatePlaylist}
         mobileOpen={mobileMenuOpen}
         onCloseMobile={() => setMobileMenuOpen(false)}
-        openSpotifyModal={() => setSpotifyModalOpen(true)}
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col z-10 relative h-[calc(100vh-114px)] md:h-[calc(100vh-96px)] overflow-y-auto overflow-x-hidden scrollbar-hide">
+      <main className="flex-1 flex flex-col z-10 relative h-[calc(100vh-114px)] md:h-[calc(100vh-96px)] overflow-y-auto overflow-x-hidden scrollbar-hide pb-36 md:pb-24">
         <Topbar 
           searchQuery={searchQuery} 
           setSearchQuery={setSearchQuery} 
           currentView={currentView} 
           setCurrentView={setCurrentView} 
           openAuthModal={() => setAuthModalOpen(true)}
-          openSpotifyModal={() => setSpotifyModalOpen(true)}
           onToggleMobileMenu={() => setMobileMenuOpen(prev => !prev)}
         />
         {renderCurrentView()}
@@ -166,27 +164,6 @@ const MainApp = () => {
 
       {/* Mobile Bottom Navigation Bar (Home, Search, Library, Liked, Profile) */}
       <MobileNavBar currentView={currentView} setCurrentView={setCurrentView} />
-
-      {/* Background YouTube Audio Stream Engine */}
-      <YouTubeAudioEngine />
-
-      {/* YouTube / Spotify Playlist Importer Modal */}
-      <SpotifyImporterModal 
-        isOpen={spotifyModalOpen} 
-        onClose={() => setSpotifyModalOpen(false)} 
-        onImportSuccess={(tracks, name) => {
-          if (setGlobalTracks) {
-            setGlobalTracks(prev => {
-              const existingIds = new Set(prev.map(t => t.id));
-              const filtered = tracks.filter(t => !existingIds.has(t.id));
-              return [...prev, ...filtered];
-            });
-          }
-          if (createPlaylist) {
-            createPlaylist(name, 'Imported Playlist', tracks.map(t => t.id));
-          }
-        }}
-      />
 
       {/* Auth Gate / Login Modal */}
       <AuthModal 
@@ -232,13 +209,20 @@ const MainApp = () => {
   );
 };
 
+const PlayerWithToast = ({ children }) => {
+  const { triggerToast } = useContext(LibraryContext) || {};
+  return <PlayerProvider setToastMessage={triggerToast}>{children}</PlayerProvider>;
+};
+
 export default function App() {
   return (
     <AuthProvider>
       <LibraryProvider>
-        <PlayerProvider>
-          <MainApp />
-        </PlayerProvider>
+        <PlayerWithToast>
+          <SearchProvider>
+            <MainApp />
+          </SearchProvider>
+        </PlayerWithToast>
       </LibraryProvider>
     </AuthProvider>
   );

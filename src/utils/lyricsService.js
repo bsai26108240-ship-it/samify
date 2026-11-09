@@ -36,7 +36,7 @@ export const fetchLyrics = async (title, artist) => {
       plainLyrics: data.plainLyrics || null
     };
   } catch (error) {
-    console.error("LRCLIB Lyrics fetch error:", error);
+    console.warn("LRCLIB lyrics are unavailable:", error?.message || error);
     return { syncedLyrics: null, plainLyrics: null };
   }
 };

@@ -20,7 +20,7 @@ export const ProfileView = ({ onAddToPlaylist }) => {
   const maxMins = Math.max(...chartData, 1);
 
   return (
-    <div className="px-4 sm:px-6 md:px-10 pb-28 md:pb-12 space-y-6 sm:space-y-10 animate-fadeIn pt-3 sm:pt-4 select-none">
+    <div className="px-4 sm:px-6 md:px-10 pb-36 md:pb-24 space-y-6 sm:space-y-10 animate-fadeIn pt-3 sm:pt-4 select-none">
       {/* Profile Header */}
       <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6 bg-gradient-to-r from-emerald-950/40 via-[#121212] to-black p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/10 shadow-2xl text-center sm:text-left">
         <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 p-1 shadow-[0_0_25px_rgba(16,185,129,0.4)] flex-shrink-0">

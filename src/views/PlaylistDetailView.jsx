@@ -36,7 +36,7 @@ export const PlaylistDetailView = ({ playlist, onEdit, onDelete, setCurrentView 
   };
 
   return (
-    <div className="px-4 sm:px-6 md:px-10 pb-28 md:pb-10 space-y-6 sm:space-y-8 animate-fadeIn pt-2 sm:pt-4 select-none">
+    <div className="px-4 sm:px-6 md:px-10 pb-36 md:pb-24 space-y-6 sm:space-y-8 animate-fadeIn pt-2 sm:pt-4 select-none">
       <div className="flex flex-col sm:flex-row items-center sm:items-end space-y-4 sm:space-y-0 sm:space-x-6 mb-6 sm:mb-8 pt-4 sm:pt-6 text-center sm:text-left">
         <div className="w-36 h-36 sm:w-48 sm:h-48 rounded-2xl shadow-2xl overflow-hidden flex-shrink-0 border border-white/10">
           <img src={playlist.coverUrl} alt={playlist.title} className="w-full h-full object-cover" />

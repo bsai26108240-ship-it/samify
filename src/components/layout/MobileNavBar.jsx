@@ -1,9 +1,9 @@
 import React from 'react';
-import { Compass, Search, Library, Heart, User } from 'lucide-react';
+import { Sparkles, Search, Library, Heart, User } from 'lucide-react';
 
 export const MobileNavBar = ({ currentView, setCurrentView }) => {
   const tabs = [
-    { id: 'home', label: 'Discover', icon: Compass },
+    { id: 'discover', label: 'Discover', icon: Sparkles },
     { id: 'search', label: 'Search', icon: Search },
     { id: 'library', label: 'Library', icon: Library },
     { id: 'liked', label: 'Liked', icon: Heart },

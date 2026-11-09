@@ -1,18 +1,25 @@
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useContext, useMemo } from 'react';
 import { Search, AlertCircle, X, Loader2 } from 'lucide-react';
 import { LibraryContext } from '../contexts/LibraryContext';
+import { useSearch } from '../contexts/SearchContext';
 import { TrackRow } from '../components/track/TrackRow';
 import { EmptyPlaceholderView } from './EmptyPlaceholderView';
-import { searchSongs } from '../services/musicApi';
 
 export const SearchView = ({ searchQuery, setSearchQuery, onAddToPlaylist }) => {
   const { favorites, toggleFavorite, globalTracks } = useContext(LibraryContext);
-  const [onlineResults, setOnlineResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState('');
-  const requestIdRef = useRef(0);
+  const searchState = useSearch() || {};
 
-  const query = (searchQuery || '').trim();
+  // SearchContext is the single source of truth shared with the Header. The
+  // props remain as a fallback for isolated renders.
+  const activeSearchQuery =
+    searchQuery !== undefined ? searchQuery : searchState.searchQuery || '';
+  const updateSearchQuery =
+    setSearchQuery || searchState.setSearchQuery || (() => {});
+  const onlineResults = searchState.onlineResults || [];
+  const isSearching = searchState.isSearching || false;
+  const searchError = searchState.searchError || '';
+
+  const query = (activeSearchQuery || '').trim();
   const normalizedQuery = query.toLowerCase();
 
   const localResults = useMemo(() => {
@@ -26,49 +33,6 @@ export const SearchView = ({ searchQuery, setSearchQuery, onAddToPlaylist }) => 
     );
   }, [globalTracks, normalizedQuery]);
 
-  useEffect(() => {
-    if (!normalizedQuery) {
-      setOnlineResults([]);
-      setIsSearching(false);
-      setSearchError('');
-      return undefined;
-    }
-
-    const requestId = ++requestIdRef.current;
-    // Debounce live keystroke searches so we browse the catalogue fluidly.
-    const timer = setTimeout(async () => {
-      setIsSearching(true);
-      setSearchError('');
-
-      try {
-        const results = await searchSongs(normalizedQuery, {
-          limit: 30,
-          withLyrics: false,
-          throwOnError: true,
-        });
-
-        if (requestIdRef.current === requestId) {
-          setOnlineResults(results);
-        }
-      } catch (error) {
-        if (requestIdRef.current === requestId) {
-          // Keep any previously cached online results so we don't flash
-          // an empty screen on a transient network hiccup.
-          setOnlineResults((prev) => prev.length > 0 ? prev : []);
-          setSearchError(
-            'Online search is unavailable right now. Showing local library matches instead.'
-          );
-        }
-      } finally {
-        if (requestIdRef.current === requestId) {
-          setIsSearching(false);
-        }
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [normalizedQuery]);
-
   const results = useMemo(() => {
     const seen = new Set();
 
@@ -80,20 +44,20 @@ export const SearchView = ({ searchQuery, setSearchQuery, onAddToPlaylist }) => 
   }, [localResults, onlineResults]);
 
   return (
-    <div className="px-4 sm:px-6 md:px-10 pb-28 md:pb-10 space-y-4 sm:space-y-6 animate-fadeIn pt-2 sm:pt-4 select-none">
+    <div className="px-4 sm:px-6 md:px-10 pb-36 md:pb-24 space-y-4 sm:space-y-6 animate-fadeIn pt-2 sm:pt-4 select-none">
       {/* Mobile Search Bar */}
       <div className="sm:hidden relative w-full mb-4">
         <Search className="w-4 h-4 absolute left-4 top-3.5 text-zinc-400" />
         <input
           type="text"
           placeholder="Search songs, artists, genres..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery && setSearchQuery(e.target.value)}
+          value={activeSearchQuery}
+          onChange={(e) => updateSearchQuery(e.target.value)}
           className="w-full bg-[#161616] text-sm text-white pl-11 pr-10 py-3 rounded-full border border-white/10 focus:outline-none focus:border-emerald-500 transition"
         />
-        {searchQuery && (
+        {activeSearchQuery && (
           <X 
-            onClick={() => setSearchQuery && setSearchQuery('')}
+            onClick={() => updateSearchQuery('')}
             className="w-4 h-4 absolute right-4 top-3.5 text-zinc-400 hover:text-white cursor-pointer" 
           />
         )}
@@ -113,14 +77,14 @@ export const SearchView = ({ searchQuery, setSearchQuery, onAddToPlaylist }) => 
       ) : results.length === 0 ? (
         <EmptyPlaceholderView 
           title="No results found" 
-          description={`We couldn't find anything matching "${searchQuery}". Try searching for another artist or song.`} 
+          description={`We couldn't find anything matching "${activeSearchQuery}". Try searching for another artist or song.`} 
           icon={AlertCircle} 
         />
       ) : (
         <div>
           <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
             <h2 className="text-xl sm:text-2xl font-bold text-white">
-              Search Results for "{searchQuery}"
+              Search Results for "{activeSearchQuery}"
             </h2>
             {isSearching && <Loader2 className="w-4 h-4 animate-spin text-emerald-400 flex-shrink-0" />}
           </div>

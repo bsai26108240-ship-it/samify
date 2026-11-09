@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { Compass, Search, Heart, Library, Plus, X, Sparkles } from 'lucide-react';
+import { Home, Search, Heart, Library, Plus, X, Sparkles } from 'lucide-react';
 import { LibraryContext } from '../../contexts/LibraryContext';
 import { SamifyLogo } from '../common/SamifyLogo';
 
@@ -8,8 +8,7 @@ export const NavigationSidebar = ({
   setCurrentView, 
   openCreatePlaylist, 
   mobileOpen = false, 
-  onCloseMobile = () => {},
-  openSpotifyModal = () => {}
+  onCloseMobile = () => {}
 }) => {
   const { playlists } = useContext(LibraryContext);
 
@@ -46,11 +45,18 @@ export const NavigationSidebar = ({
       <div className="space-y-1 mb-8">
         <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-3 px-3">Menu</p>
         <button 
+          onClick={() => handleNavClick('discover')} 
+          className={`w-full flex items-center space-x-4 px-3 py-2.5 rounded-xl transition-all ${currentView === 'discover' ? 'text-emerald-400 bg-white/10 font-medium relative before:absolute before:left-0 before:w-1 before:h-6 before:bg-emerald-500 before:rounded-r-full shadow-[0_0_20px_rgba(16,185,129,0.15)]' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+        >
+          <Sparkles className="w-5 h-5" />
+          <span className="text-sm font-semibold">Discover</span>
+        </button>
+        <button 
           onClick={() => handleNavClick('home')} 
           className={`w-full flex items-center space-x-4 px-3 py-2.5 rounded-xl transition-all ${currentView === 'home' ? 'text-emerald-400 bg-white/10 font-medium relative before:absolute before:left-0 before:w-1 before:h-6 before:bg-emerald-500 before:rounded-r-full shadow-[0_0_20px_rgba(16,185,129,0.15)]' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
         >
-          <Compass className="w-5 h-5" />
-          <span className="text-sm font-semibold">Discover</span>
+          <Home className="w-5 h-5" />
+          <span className="text-sm font-semibold">Home</span>
         </button>
         <button 
           onClick={() => handleNavClick('search')} 
@@ -58,13 +64,6 @@ export const NavigationSidebar = ({
         >
           <Search className="w-5 h-5" />
           <span className="text-sm font-semibold">Search</span>
-        </button>
-        <button 
-          onClick={() => { openSpotifyModal(); onCloseMobile(); }} 
-          className="w-full flex items-center space-x-4 px-3 py-2.5 rounded-xl text-emerald-400 hover:bg-emerald-500/10 transition-all font-semibold"
-        >
-          <Sparkles className="w-5 h-5" />
-          <span className="text-sm">Import Spotify</span>
         </button>
       </div>
 

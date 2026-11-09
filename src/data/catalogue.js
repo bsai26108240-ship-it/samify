@@ -1,3 +1,10 @@
+// Royalty-free public demo streams (audio/mpeg). Used for curated tracks
+// without a bundled asset and as per-track recovery URLs elsewhere. Plain
+// direct URLs stream instantly into an <audio> element with no CORS errors.
+// Replace with licensed CDN assets before production.
+const DEMO = (n) =>
+  `https://www.soundhelix.com/examples/mp3/SoundHelix-Song-${n}.mp3`;
+
 export const MUSIC_CATALOGUE = [
   // --- THE WEEKND ---
   {
@@ -6,7 +13,8 @@ export const MUSIC_CATALOGUE = [
     artist: 'The Weeknd',
     album: 'After Hours',
     duration: 200,
-    audioUrl: '/audio/blinding_lights.mp3',
+    audioUrl: DEMO(3),
+    fallbackAudioUrl: DEMO(7),
     coverUrl: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&auto=format&fit=crop&q=80',
     genre: 'Synth-Pop',
     plays: '4,102,945,120',
@@ -39,7 +47,8 @@ export const MUSIC_CATALOGUE = [
     artist: 'The Weeknd',
     album: 'Starboy',
     duration: 230,
-    audioUrl: '/audio/starboy.mp3',
+    audioUrl: DEMO(4),
+    fallbackAudioUrl: DEMO(8),
     coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&auto=format&fit=crop&q=80',
     genre: 'R&B / Electro',
     plays: '3,180,442,890',
@@ -65,7 +74,8 @@ export const MUSIC_CATALOGUE = [
     artist: 'The Weeknd',
     album: 'After Hours',
     duration: 215,
-    audioUrl: '/audio/save_your_tears.mp3',
+    audioUrl: DEMO(7),
+    fallbackAudioUrl: DEMO(2),
     coverUrl: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=500&auto=format&fit=crop&q=80',
     genre: 'Synth-Pop',
     plays: '2,950,118,400',
@@ -90,7 +100,8 @@ export const MUSIC_CATALOGUE = [
     artist: 'Drake',
     album: 'Scorpion',
     duration: 198,
-    audioUrl: '/audio/gods_plan.mp3',
+    audioUrl: DEMO(5),
+    fallbackAudioUrl: DEMO(1),
     coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80',
     genre: 'Hip-Hop / Rap',
     plays: '2,890,320,100',
@@ -113,7 +124,8 @@ export const MUSIC_CATALOGUE = [
     artist: 'Drake',
     album: 'Views',
     duration: 267,
-    audioUrl: '/audio/hotline_bling.mp3',
+    audioUrl: DEMO(11),
+    fallbackAudioUrl: DEMO(10),
     coverUrl: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=500&auto=format&fit=crop&q=80',
     genre: 'R&B / Pop',
     plays: '1,980,500,430',
@@ -132,7 +144,8 @@ export const MUSIC_CATALOGUE = [
     artist: 'Drake',
     album: 'More Life',
     duration: 298,
-    audioUrl: '/audio/passionfruit.mp3',
+    audioUrl: DEMO(6),
+    fallbackAudioUrl: DEMO(2),
     coverUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500&auto=format&fit=crop&q=80',
     genre: 'Tropical R&B',
     plays: '1,745,210,000',
@@ -151,7 +164,8 @@ export const MUSIC_CATALOGUE = [
     artist: 'PARTYNEXTDOOR',
     album: 'PARTYNEXTDOOR',
     duration: 140,
-    audioUrl: '/audio/break_from_toronto.mp3',
+    audioUrl: DEMO(8),
+    fallbackAudioUrl: DEMO(5),
     coverUrl: 'https://images.unsplash.com/photo-1514361537243-7f3299c82c3c?w=500&auto=format&fit=crop&q=80',
     genre: 'Mood R&B',
     plays: '890,420,110',
@@ -169,7 +183,8 @@ export const MUSIC_CATALOGUE = [
     artist: 'PARTYNEXTDOOR',
     album: 'PARTYNEXTDOOR TWO',
     duration: 311,
-    audioUrl: '/audio/recognize.mp3',
+    audioUrl: DEMO(9),
+    fallbackAudioUrl: DEMO(6),
     coverUrl: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=500&auto=format&fit=crop&q=80',
     genre: 'Toronto R&B',
     plays: '780,120,500',
@@ -185,7 +200,8 @@ export const MUSIC_CATALOGUE = [
     artist: 'PARTYNEXTDOOR',
     album: 'PARTYMOBILE',
     duration: 207,
-    audioUrl: '/audio/loyal.mp3',
+    audioUrl: DEMO(10),
+    fallbackAudioUrl: DEMO(11),
     coverUrl: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=500&auto=format&fit=crop&q=80',
     genre: 'Afro R&B',
     plays: '650,910,230',
@@ -193,6 +209,64 @@ export const MUSIC_CATALOGUE = [
       { time: 0, text: "♪ (Afrobeats Percussion Beat) ♪" },
       { time: 10, text: "True to you, I'm loyal" },
       { time: 16, text: "Girl, you know I'm loyal" }
+    ]
+  },
+
+  // --- TRAVIS SCOTT ---
+  {
+    id: '10',
+    title: 'SICKO MODE',
+    artist: 'Travis Scott',
+    album: 'ASTROWORLD',
+    duration: 312,
+    audioUrl: DEMO(2),
+    fallbackAudioUrl: DEMO(9),
+    coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=500&auto=format&fit=crop&q=80',
+    genre: 'Hip-Hop / Trap',
+    plays: '1,820,400,000',
+    lyrics: [
+      { time: 0, text: "♪ (Astroworld Synth Swell) ♪" },
+      { time: 12, text: "Sun is down, freezin' cold" },
+      { time: 18, text: "That's how we already know winter's here" },
+      { time: 26, text: 'My dawg would prolly do it for a Louis belt' },
+      { time: 34, text: 'Astroworld, you know what I mean' },
+      { time: 46, text: 'Sicko mode, sicko mode' }
+    ]
+  },
+  {
+    id: '11',
+    title: 'FE!N',
+    artist: 'Travis Scott',
+    album: 'UTOPIA',
+    duration: 191,
+    audioUrl: DEMO(3),
+    fallbackAudioUrl: DEMO(10),
+    coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=500&auto=format&fit=crop&q=80',
+    genre: 'Hip-Hop / Rage',
+    plays: '1,140,220,000',
+    lyrics: [
+      { time: 0, text: "♪ (UTOPIA Rage Beat) ♪" },
+      { time: 9, text: 'FE!N, FE!N, FE!N' },
+      { time: 16, text: 'We off the grid, off the grid' },
+      { time: 24, text: 'FE!N, FE!N, FE!N' }
+    ]
+  },
+  {
+    id: '12',
+    title: 'goosebumps',
+    artist: 'Travis Scott',
+    album: 'Birds in the Trap Sing McKnight',
+    duration: 244,
+    audioUrl: DEMO(4),
+    fallbackAudioUrl: DEMO(11),
+    coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=500&auto=format&fit=crop&q=80',
+    genre: 'Hip-Hop / Psychedelic',
+    plays: '1,470,880,000',
+    lyrics: [
+      { time: 0, text: "♪ (Psychedelic Guitar Loop) ♪" },
+      { time: 11, text: 'I get goosebumps' },
+      { time: 18, text: 'I get goosebumps' },
+      { time: 28, text: "They be askin' where the party at" }
     ]
   }
 ];

@@ -28,8 +28,16 @@ export const LibraryProvider = ({ children }) => {
     try {
       const saved = JSON.parse(localStorage.getItem(`samify_tracks_${userKey}`));
       if (Array.isArray(saved) && saved.length > 0) {
-        const existingIds = new Set(saved.map(t => t.id));
-        return [...saved, ...MUSIC_CATALOGUE.filter(t => !existingIds.has(t.id))];
+        const catalogueById = new Map(MUSIC_CATALOGUE.map(t => [String(t.id), t]));
+        // Built-in tracks always adopt the freshest stream URLs so a stale
+        // local-storage copy (e.g. dead /audio paths or old mirrors) never
+        // shadow the working fallbackAudioUrl chain.
+        const revivedSaved = saved.map(t => {
+          const fresh = catalogueById.get(String(t.id));
+          return fresh ? { ...fresh, ...t, audioUrl: fresh.audioUrl, streamUrl: fresh.audioUrl, fallbackAudioUrl: fresh.fallbackAudioUrl, fallbackStreamUrl: fresh.fallbackStreamUrl || '' } : t;
+        });
+        const existingIds = new Set(revivedSaved.map(t => String(t.id)));
+        return [...revivedSaved, ...MUSIC_CATALOGUE.filter(t => !existingIds.has(String(t.id)))];
       }
       return MUSIC_CATALOGUE;
     } catch {
@@ -324,6 +332,14 @@ export const LibraryProvider = ({ children }) => {
     const trackData = typeof trackOrId === 'object' && trackOrId !== null 
       ? trackOrId 
       : (globalTracks.find(t => t.id === trackId) || { id: trackId });
+
+    // Register streamed tracks locally so they survive in the liked library.
+    if (typeof trackOrId === 'object' && trackOrId !== null && trackOrId.title) {
+      setGlobalTracks(prev => {
+        if (prev.some(t => t.id === trackId)) return prev;
+        return [...prev, trackOrId];
+      });
+    }
 
     const isFav = favorites.includes(trackId);
     const newFavs = isFav ? favorites.filter(id => id !== trackId) : [...favorites, trackId];

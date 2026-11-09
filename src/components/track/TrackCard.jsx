@@ -28,7 +28,7 @@ export const TrackCard = ({ track, queue, onToggleFavorite, isFavorite, onAddToP
       <p className="text-[10px] sm:text-xs text-zinc-500 truncate mb-2 sm:mb-4">{track.artist}</p>
       <div className="flex items-center justify-between text-zinc-400">
         <Heart 
-          onClick={(e) => { e.stopPropagation(); onToggleFavorite(track.id); }}
+          onClick={(e) => { e.stopPropagation(); onToggleFavorite(track); }}
           className={`w-3.5 h-3.5 sm:w-4 sm:h-4 cursor-pointer hover:text-emerald-400 transition ${isFavorite ? 'text-emerald-500 fill-emerald-500' : ''}`} 
         />
         <ListPlus 

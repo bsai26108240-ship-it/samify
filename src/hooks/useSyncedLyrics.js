@@ -2,14 +2,19 @@ import { useState, useEffect } from 'react';
 import { fetchLyrics } from '../utils/lyricsService';
 
 /**
- * Parses LRC lyrics string format into timestamped objects
+ * Parses LRC lyrics string format into timestamped objects.
+ *
+ * Handles both 2- and 3-digit fractions correctly: `[00:14.20]` becomes
+ * 14.200s (not 14.2 or 14.02), so highlighting stays in sync with
+ * `audioRef.currentTime`.
+ *
  * Input: "[00:14.20] Yeah, they wishin..."
  * Output: [{ time: 14.2, text: "Yeah, they wishin..." }]
  */
-const parseLrc = (lrcString) => {
-  if (!lrcString) return [];
+export function parseLRC(lrcString) {
+  if (!lrcString || typeof lrcString !== 'string') return [];
   const lines = lrcString.split('\n');
-  const parsed = [];
+  const result = [];
   const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
 
   for (const line of lines) {
@@ -17,19 +22,16 @@ const parseLrc = (lrcString) => {
     if (match) {
       const minutes = parseInt(match[1], 10);
       const seconds = parseInt(match[2], 10);
-      const milliseconds = parseInt(match[3], 10);
-      
-      const totalTime = minutes * 60 + seconds + (milliseconds > 99 ? milliseconds / 1000 : milliseconds / 100);
+      const millis = parseInt(match[3].padEnd(3, '0'), 10);
+      const timeInSeconds = minutes * 60 + seconds + millis / 1000;
       const text = line.replace(timeRegex, '').trim();
-
       if (text) {
-        parsed.push({ time: totalTime, text });
+        result.push({ time: timeInSeconds, text });
       }
     }
   }
-
-  return parsed.sort((a, b) => a.time - b.time);
-};
+  return result.sort((a, b) => a.time - b.time);
+}
 
 export const useSyncedLyrics = (trackTitle, artistName) => {
   const [lyrics, setLyrics] = useState([]);
@@ -52,7 +54,7 @@ export const useSyncedLyrics = (trackTitle, artistName) => {
 
         try {
           if (data.syncedLyrics) {
-            setLyrics(parseLrc(data.syncedLyrics));
+            setLyrics(parseLRC(data.syncedLyrics));
           } else if (data.plainLyrics) {
             const plainLines = data.plainLyrics
               .split('\n')

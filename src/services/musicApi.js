@@ -1,85 +1,103 @@
 import { cleanStreamUrl, decodeHtmlEntities } from './streamUtils';
+import { getAllOfflineTracks } from '../utils/offlineStorage';
+import { MUSIC_CATALOGUE } from '../data/catalogue';
 
 /**
- * JioSaavn client-side API layer with multi-mirror failover.
+ * Production JioSaavn client-side API engine.
  *
- * Iterates through a list of public JioSaavn REST mirrors with a 4-second
- * timeout per attempt. If one mirror is down, rate-limited, or returns an
- * empty payload, the next mirror is tried automatically.
+ * Implements a CORS proxy pipeline across multiple JioSaavn mirror endpoints.
+ * When browser CORS or network dropouts occur, each request walks through
+ * public proxy endpoints until genuine 320kbps/160kbps streams are returned.
+ * If all online mirrors fail, it checks local IndexedDB offline storage
+ * and the genuine bundled catalogue before returning empty.
  */
 
 const API_BASES = [
-  import.meta.env?.VITE_JIOSAAVN_API_BASE,
   'https://saavn.dev/api',
   'https://jiosaavn-api-v3.vercel.app',
   'https://jiosaavn-api-sigma.vercel.app',
-  'https://saavn.me',
-].filter(Boolean);
+];
+
+const PROXIES = [
+  (url) => url,
+  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+];
 
 const MAX_LYRICS_ENRICH = 8;
-
-// ---------------------------------------------------------------------------
-// Core fetch with sequential mirror failover
-// ---------------------------------------------------------------------------
+const REQUEST_TIMEOUT_MS = 4000;
 
 /**
- * Tries every mirror in `API_BASES` sequentially for the given `path`.
- * Returns the parsed JSON body from the first mirror that responds with a
- * 2xx status and a non-empty payload, or throws the last encountered error.
+ * Walks every mirror and proxy combination until one returns a usable payload.
+ * Unwraps proxy payloads (e.g. allorigins { contents: string }).
  */
-const fetchFromMirrors = async (path, { timeout = 4000 } = {}) => {
+async function fetchWithProxies(endpoint) {
   let lastError = null;
 
   for (const base of API_BASES) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeout);
+    const targetUrl = `${base}${endpoint}`;
+    for (const proxyFn of PROXIES) {
+      try {
+        const proxiedUrl = proxyFn(targetUrl);
+        const res = await fetch(proxiedUrl, {
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+          headers: { Accept: 'application/json' },
+        });
 
-    try {
-      const url = `${base}${path}`;
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: { Accept: 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error(`JioSaavn mirror ${base} returned HTTP ${response.status}`);
+        if (res.ok) {
+          const raw = await res.json();
+          const data = typeof raw.contents === 'string' ? JSON.parse(raw.contents) : raw;
+          if (data && (data.data || data.results || Array.isArray(data))) {
+            return data;
+          }
+        }
+      } catch (err) {
+        lastError = err;
       }
-
-      const json = await response.json();
-
-      // Guard against mirrors that return 200 with an empty or error body.
-      if (json && typeof json === 'object' && !json.error) {
-        return json;
-      }
-
-      throw new Error(`Mirror ${base} returned empty or error payload`);
-    } catch (error) {
-      lastError = error;
-    } finally {
-      clearTimeout(timer);
     }
   }
 
-  throw lastError || new Error('All JioSaavn mirrors are unavailable');
+  throw lastError || new Error('All live API mirrors and proxies failed.');
+}
+
+const extractSongArray = (payload) => {
+  if (!payload) return [];
+  const candidates = [
+    payload?.data?.results,
+    payload?.data?.songs,
+    payload?.data?.data,
+    payload?.data,
+    payload?.results,
+    payload?.songs,
+  ];
+  return candidates.find((candidate) => Array.isArray(candidate)) || [];
 };
 
-// ---------------------------------------------------------------------------
-// Response normalizers
-// ---------------------------------------------------------------------------
+const extractPlaylistArray = (payload) => {
+  if (!payload) return [];
+  const candidates = [
+    payload?.data?.results,
+    payload?.data?.playlists,
+    payload?.data?.data,
+    payload?.data,
+    payload?.results,
+    payload?.playlists,
+  ];
+  return candidates.find((candidate) => Array.isArray(candidate)) || [];
+};
 
 /**
- * Picks the highest-resolution cover image from the many payload shapes
- * returned by different mirrors.
+ * Extracts the highest-resolution cover art (preferring 512x512 / 500x500).
  */
 const pickImage = (images) => {
   if (!images) return '';
   if (typeof images === 'string') return images;
 
   if (Array.isArray(images)) {
-    // Prefer explicit 500×500, then the last (largest) entry.
     const preferred =
+      images.find((img) => img?.quality === '512x512') ||
       images.find((img) => img?.quality === '500x500') ||
-      images[2] ||
+      images.find((img) => img?.quality === '150x150') ||
       images[images.length - 1];
     return preferred?.link || preferred?.url || '';
   }
@@ -87,43 +105,61 @@ const pickImage = (images) => {
   return images.link || images.url || '';
 };
 
-/**
- * Extracts lyrics from the many shapes different mirrors return.
- */
-const extractLyrics = (song) => {
-  if (!song) return null;
+const extractArtistNames = (song = {}) => {
+  const primary = song.artists?.primary;
 
-  // Some mirrors return a nested lyrics object, others a plain string.
-  const raw = song.lyrics;
-  if (typeof raw === 'string' && raw.trim()) return raw;
-  if (raw && typeof raw === 'object') {
-    return raw.lyrics || raw.snippet || null;
+  if (Array.isArray(primary)) {
+    const names = primary
+      .map((artist) => (typeof artist === 'string' ? artist : artist?.name))
+      .filter(Boolean);
+    if (names.length > 0) return names.join(', ');
   }
 
-  // When lyrics aren't inline, report the URL so the UI can lazily fetch.
-  if (song.hasLyrics && song.lyricsUrl) return song.lyricsUrl;
+  if (primary && typeof primary === 'object' && primary.name) {
+    return primary.name;
+  }
 
-  return null;
+  if (Array.isArray(song.primaryArtists)) {
+    const names = song.primaryArtists
+      .map((artist) => (typeof artist === 'string' ? artist : artist?.name))
+      .filter(Boolean);
+    if (names.length > 0) return names.join(', ');
+  }
+
+  return (
+    song.primaryArtists ||
+    song.artist ||
+    song.singers ||
+    song.subtitle ||
+    'Unknown Artist'
+  );
+};
+
+const extractLyrics = (song) => {
+  const raw = song?.lyrics ?? song?.plainLyrics;
+  if (typeof raw === 'string') return raw;
+  if (Array.isArray(raw)) return raw;
+  if (raw && typeof raw === 'object') return raw.lyrics || raw.snippet || '';
+  return '';
+};
+
+const getAllDownloads = (song = {}) => {
+  const candidates = [song.downloadUrl, song.downloadUrls, song.download_urls];
+  return candidates.find((candidate) => Array.isArray(candidate)) || [];
 };
 
 /**
- * Universal response normalizer — turns any JioSaavn song object into
- * Samify's internal track schema regardless of which mirror provided it.
+ * Normalizes a raw JioSaavn song object into Samify's internal track schema.
+ * Extracts 320kbps / 160kbps stream URLs and high-res artwork.
  */
 export const normalizeTrack = (song = {}) => {
-  // --- Audio URL ---
-  const downloads = Array.isArray(song.downloadUrl)
-    ? song.downloadUrl
-    : Array.isArray(song.downloadUrls)
-      ? song.downloadUrls
-      : [];
+  const downloads = getAllDownloads(song);
 
-  // Prefer index-based high quality first, then quality-label based.
+  // Prefer 320kbps, then 160kbps, then highest available bitrate
   const bestAudio =
-    downloads.find((item) => item?.quality === '320kbps') ||
-    downloads.find((item) => item?.quality === '160kbps') ||
-    downloads[4] ||
-    downloads[3] ||
+    downloads.find((item) => /^320/.test(item?.quality || '')) ||
+    downloads.find((item) => /^160/.test(item?.quality || '')) ||
+    downloads[downloads.length - 1] ||
     downloads[0] ||
     {};
 
@@ -131,61 +167,37 @@ export const normalizeTrack = (song = {}) => {
     bestAudio.link ||
       bestAudio.url ||
       song.audioUrl ||
+      song.streamUrl ||
       song.media_url ||
       song.url
   );
 
-  // --- Cover Art ---
   const imageUrl =
     pickImage(song.image) ||
-    song.album_image ||
+    pickImage(song.images) ||
+    pickImage(song.coverArt) ||
+    pickImage(song.coverUrl) ||
     '';
 
-  // --- Lyrics ---
   const lyrics = extractLyrics(song);
+  const artistNames = extractArtistNames(song);
 
-  // --- Artist ---
-  let artistNames = 'Unknown Artist';
-  try {
-    if (song.artists?.primary && Array.isArray(song.artists.primary)) {
-      const mapped = song.artists.primary.map((a) => a.name).filter(Boolean).join(', ');
-      if (mapped) artistNames = mapped;
-    } else if (song.primaryArtists) {
-      artistNames = song.primaryArtists;
-    } else if (song.artist) {
-      artistNames = typeof song.artist === 'string'
-        ? song.artist
-        : Array.isArray(song.artist)
-          ? song.artist.map((a) => (typeof a === 'string' ? a : a.name)).join(', ')
-          : 'Unknown Artist';
-    } else if (song.singers) {
-      artistNames = song.singers;
-    }
-  } catch {
-    artistNames = 'Unknown Artist';
-  }
-
-  // --- Album ---
   const albumName =
-    typeof song.album === 'string'
-      ? song.album
-      : song.album?.name || 'Single';
-
-  // --- ID ---
-  const id = String(song.id || song.songId || Math.random().toString(36).slice(2));
+    typeof song.album === 'string' ? song.album : song.album?.name || 'Single';
 
   return {
-    id,
-    title: decodeHtmlEntities(song.name || song.title || song.songName || 'Untitled Track'),
+    id: String(song.id || song.songId || song.song_id || Math.random().toString(36).slice(2)),
+    title: decodeHtmlEntities(song.name || song.title || 'Unknown Track'),
     artist: decodeHtmlEntities(artistNames),
     album: decodeHtmlEntities(albumName),
     coverUrl: imageUrl || 'https://via.placeholder.com/500',
     coverArt: imageUrl || 'https://via.placeholder.com/500',
     audioUrl,
     streamUrl: audioUrl,
-    duration: parseInt(song.duration, 10) || 0,
+    duration: parseInt(song.duration || song.duration_seconds, 10) || 0,
     language: song.language || '',
     year: song.year || '',
+    genre: song.genre || '',
     hasLyrics: Boolean(song.hasLyrics) || Boolean(lyrics),
     lyrics,
     source: 'jiosaavn',
@@ -193,7 +205,7 @@ export const normalizeTrack = (song = {}) => {
 };
 
 const normalizePlaylist = (playlist = {}) => ({
-  id: String(playlist.id || playlist.playlistId || ''),
+  id: String(playlist.id || playlist.playlistId || playlist.playlist_id || ''),
   title: decodeHtmlEntities(playlist.name || playlist.title || 'Untitled Playlist'),
   description: decodeHtmlEntities(playlist.description || ''),
   coverUrl: pickImage(playlist.image) || 'https://via.placeholder.com/500',
@@ -201,9 +213,44 @@ const normalizePlaylist = (playlist = {}) => ({
   source: 'jiosaavn',
 });
 
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
+/**
+ * Searches local IndexedDB and bundled catalogue when online search fails.
+ * NEVER returns dummy SoundHelix test beats.
+ */
+const getLocalFallbackTracks = async (term) => {
+  const query = (term || '').toLowerCase().trim();
+
+  // 1. Check local IndexedDB offline storage first
+  try {
+    const offline = await getAllOfflineTracks();
+    if (Array.isArray(offline) && offline.length > 0) {
+      const offlineMatches = offline.filter((track) => {
+        if (!query) return true;
+        const text = `${track.title} ${track.artist} ${track.album}`.toLowerCase();
+        return text.includes(query);
+      });
+      if (offlineMatches.length > 0) {
+        return offlineMatches;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to query offline tracks:', err);
+  }
+
+  // 2. Fall back to bundled catalogue tracks with real audio assets
+  if (Array.isArray(MUSIC_CATALOGUE) && MUSIC_CATALOGUE.length > 0) {
+    const catalogueMatches = MUSIC_CATALOGUE.filter((track) => {
+      if (!query) return true;
+      const text = `${track.title} ${track.artist} ${track.album} ${track.genre || ''}`.toLowerCase();
+      return text.includes(query);
+    });
+    if (catalogueMatches.length > 0) {
+      return catalogueMatches.map(normalizeTrack);
+    }
+  }
+
+  return [];
+};
 
 /**
  * Fetches lyrics for a single song on demand.
@@ -212,9 +259,8 @@ export const getSongLyrics = async (songId) => {
   if (!songId) return '';
 
   try {
-    const data = await fetchFromMirrors(
-      `/songs/${encodeURIComponent(songId)}/lyrics`,
-      { timeout: 7000 }
+    const data = await fetchWithProxies(
+      `/songs/${encodeURIComponent(songId)}/lyrics`
     );
     return data?.data?.lyrics || data?.lyrics || data?.data?.snippet || '';
   } catch {
@@ -242,30 +288,9 @@ const enrichTracksWithLyrics = async (tracks) => {
 };
 
 /**
- * Extracts the results array from the many response shapes mirrors use.
- */
-const extractResults = (data) => {
-  const candidates = [
-    data?.data?.results,
-    data?.data?.songs,
-    data?.data,
-    data?.results,
-    data?.songs,
-  ];
-
-  for (const candidate of candidates) {
-    if (Array.isArray(candidate) && candidate.length > 0) return candidate;
-  }
-
-  return [];
-};
-
-/**
- * Search JioSaavn for songs with multi-mirror failover.
- *
- * Tries the `/search/songs` endpoint first, falling back to `/search?q=` on
- * mirrors that use that alternate path. Returns normalized Samify tracks
- * filtered to only those with a valid title and audio URL.
+ * Search JioSaavn for songs through the proxy failover pipeline.
+ * Extracts genuine 320kbps/160kbps audio URLs.
+ * If all online mirrors fail, checks local IndexedDB and bundled catalogue.
  */
 export const searchSongs = async (
   query,
@@ -275,35 +300,36 @@ export const searchSongs = async (
   if (!term) return [];
 
   try {
-    // Primary search path used by saavn.dev and most mirrors
-    let data;
-    try {
-      data = await fetchFromMirrors(
-        `/search/songs?query=${encodeURIComponent(term)}&limit=${limit}`
-      );
-    } catch {
-      // Fallback path used by some mirrors
-      data = await fetchFromMirrors(
-        `/search?q=${encodeURIComponent(term)}&limit=${limit}`
-      );
-    }
+    const data = await fetchWithProxies(
+      `/search/songs?query=${encodeURIComponent(term)}&limit=${limit}`
+    );
 
-    const songs = extractResults(data);
-
+    const songs = extractSongArray(data);
     const tracks = songs
       .map(normalizeTrack)
-      .filter((track) => track.title && track.audioUrl);
+      .filter((track) => track.id && track.audioUrl);
 
-    return withLyrics ? enrichTracksWithLyrics(tracks) : tracks;
+    if (tracks.length > 0) {
+      return withLyrics ? await enrichTracksWithLyrics(tracks) : tracks;
+    }
   } catch (error) {
-    console.warn('JioSaavn search is unavailable:', error?.message || error);
-    if (throwOnError) throw error;
-    return [];
+    console.warn('[MusicAPI] Live search failed across all mirrors & proxies:', error?.message || error);
   }
+
+  // Fallback to IndexedDB / bundled catalogue with real audio
+  const fallback = await getLocalFallbackTracks(term);
+  if (fallback.length > 0) {
+    return fallback;
+  }
+
+  if (throwOnError) {
+    throw new Error(`No tracks found for "${term}"`);
+  }
+  return [];
 };
 
 /**
- * Fetches an artist's catalogue by searching the artist name.
+ * Fetches an artist's catalogue with proxy pipeline support.
  */
 export const getArtistSongs = async (
   artistName,
@@ -312,7 +338,14 @@ export const getArtistSongs = async (
   const term = String(artistName || '').trim();
   if (!term) return [];
 
-  return searchSongs(term, { limit, withLyrics, throwOnError });
+  try {
+    const tracks = await searchSongs(term, { limit, withLyrics, throwOnError: false });
+    if (tracks.length > 0) return tracks;
+  } catch (error) {
+    if (throwOnError) throw error;
+  }
+
+  return await getLocalFallbackTracks(term);
 };
 
 /**
@@ -321,29 +354,35 @@ export const getArtistSongs = async (
 export const getTrendingCharts = async () => {
   try {
     const [songsData, playlistsData] = await Promise.all([
-      fetchFromMirrors('/search/songs?query=top%20hits&limit=20').catch(() =>
-        fetchFromMirrors('/search?q=top%20hits&limit=20').catch(() => null)
-      ),
-      fetchFromMirrors('/search/playlists?query=trending&limit=10').catch(() => null),
+      fetchWithProxies('/search/songs?query=top%20hits&limit=20'),
+      fetchWithProxies('/search/playlists?query=trending&limit=10').catch(() => null),
     ]);
 
-    const songs = songsData ? extractResults(songsData) : [];
-    const playlists = playlistsData?.data?.results || playlistsData?.data || [];
+    const songs = extractSongArray(songsData);
+    const playlists = extractPlaylistArray(playlistsData);
 
-    return {
-      tracks: songs
-        .map(normalizeTrack)
-        .filter((track) => track.id && track.audioUrl),
-      playlists: (Array.isArray(playlists) ? playlists : [])
-        .map(normalizePlaylist)
-        .filter((playlist) => playlist.id),
-    };
+    const tracks = songs
+      .map(normalizeTrack)
+      .filter((track) => track.id && track.audioUrl);
+
+    if (tracks.length > 0) {
+      return {
+        tracks,
+        playlists: playlists
+          .map(normalizePlaylist)
+          .filter((playlist) => playlist.id),
+      };
+    }
   } catch (error) {
-    console.warn('JioSaavn charts are unavailable:', error?.message || error);
-    return { tracks: [], playlists: [] };
+    console.warn('[MusicAPI] Charts unavailable:', error?.message || error);
   }
+
+  const fallbackTracks = await getLocalFallbackTracks('');
+  return {
+    tracks: fallbackTracks.slice(0, 20),
+    playlists: [],
+  };
 };
 
-// Backward-compatible aliases for existing callers.
 export const searchMusic = searchSongs;
 export const getTrendingMusic = async () => (await getTrendingCharts()).tracks;

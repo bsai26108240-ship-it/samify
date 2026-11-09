@@ -1,27 +1,18 @@
 import React, { useContext } from 'react';
-import { ListMusic, Plus, Play, Sparkles } from 'lucide-react';
+import { ListMusic, Plus, Play } from 'lucide-react';
 import { LibraryContext } from '../contexts/LibraryContext';
 
-export const LibraryView = ({ setCurrentView, openCreatePlaylist, openSpotifyModal }) => {
+export const LibraryView = ({ setCurrentView, openCreatePlaylist }) => {
   const { playlists } = useContext(LibraryContext);
 
   return (
-    <div className="px-4 sm:px-6 md:px-10 pb-28 md:pb-10 space-y-6 sm:space-y-8 animate-fadeIn pt-2 sm:pt-4 select-none">
+    <div className="px-4 sm:px-6 md:px-10 pb-36 md:pb-24 space-y-6 sm:space-y-8 animate-fadeIn pt-2 sm:pt-4 select-none">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 sm:mb-8">
         <div>
           <h2 className="text-2xl sm:text-3xl font-black text-white">Your Library</h2>
           <p className="text-xs text-zinc-400 mt-0.5">{playlists.length} custom playlists</p>
         </div>
         <div className="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto">
-          {openSpotifyModal && (
-            <button
-              onClick={openSpotifyModal}
-              className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 sm:px-4 py-2 rounded-full transition text-xs font-bold"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Import Spotify</span>
-            </button>
-          )}
           <button
             onClick={openCreatePlaylist}
             className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 bg-white/10 hover:bg-white/20 text-white px-3 sm:px-4 py-2 rounded-full transition text-xs font-bold"
@@ -36,17 +27,9 @@ export const LibraryView = ({ setCurrentView, openCreatePlaylist, openSpotifyMod
           <ListMusic className="w-14 h-14 sm:w-16 sm:h-16 mb-4 opacity-40 text-emerald-400" />
           <h3 className="text-lg font-bold text-white mb-1">You haven't created any playlists yet</h3>
           <p className="text-xs text-zinc-400 max-w-sm mb-6">
-            Create your own playlist or import existing favorites directly from Spotify with 1-click!
+            Create your own playlist and start building your personal collection.
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
-            {openSpotifyModal && (
-              <button
-                onClick={openSpotifyModal}
-                className="flex items-center space-x-2 bg-emerald-500 text-black px-5 py-2.5 rounded-full text-xs font-extrabold hover:bg-emerald-400 transition"
-              >
-                <Sparkles className="w-4 h-4" /> <span>Import Spotify Playlist</span>
-              </button>
-            )}
             <button
               onClick={openCreatePlaylist}
               className="flex items-center space-x-2 bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-full text-xs font-bold transition"
