@@ -38,6 +38,7 @@ export const useSyncedLyrics = (trackTitle, artistName) => {
   useEffect(() => {
     if (!trackTitle) {
       setLyrics([]);
+      setLoading(false);
       return;
     }
 
@@ -49,16 +50,37 @@ export const useSyncedLyrics = (trackTitle, artistName) => {
         const data = await fetchLyrics(trackTitle, artistName);
         if (!isMounted) return;
 
-        if (data.syncedLyrics) {
-          setLyrics(parseLrc(data.syncedLyrics));
-        } else if (data.plainLyrics) {
-          const plainLines = data.plainLyrics.split('\n').map((text, idx) => ({ time: idx * 4, text }));
-          setLyrics(plainLines);
-        } else {
-          setLyrics([]);
+        try {
+          if (data.syncedLyrics) {
+            setLyrics(parseLrc(data.syncedLyrics));
+          } else if (data.plainLyrics) {
+            const plainLines = data.plainLyrics
+              .split('\n')
+              .filter((line) => line.trim())
+              .map((text, idx) => ({ time: idx * 4, text: text.trim() }));
+            setLyrics(plainLines);
+          } else {
+            setLyrics([]);
+          }
+        } catch (parseErr) {
+          // LRC timestamp parsing failed — fall back to raw plain text so
+          // the karaoke view can still show *something* instead of crashing.
+          console.warn('LRC parsing failed, falling back to plain text:', parseErr?.message);
+          if (isMounted) {
+            try {
+              const fallbackLines = (data.syncedLyrics || data.plainLyrics || '')
+                .split('\n')
+                .map((line) => line.replace(/\[.*?\]/g, '').trim())
+                .filter(Boolean)
+                .map((text, idx) => ({ time: idx * 4, text }));
+              setLyrics(fallbackLines);
+            } catch {
+              setLyrics([]);
+            }
+          }
         }
       } catch (err) {
-        console.error("LrcLib Lyrics fetch failed:", err);
+        console.warn("LRCLIB lyrics are unavailable:", err?.message || err);
         if (isMounted) setLyrics([]);
       } finally {
         if (isMounted) setLoading(false);
